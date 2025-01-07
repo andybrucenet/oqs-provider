@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0 AND MIT
 
-#include "test_common.h"
-#include "tlstest_helpers.h"
 #include <openssl/core_names.h>
 #include <openssl/provider.h>
 #include <openssl/ssl.h>
 #include <string.h>
+
+#include "test_common.h"
+#include "tlstest_helpers.h"
 
 static OSSL_LIB_CTX *libctx = NULL;
 static char *modulename = NULL;
@@ -14,8 +15,7 @@ static char *cert = NULL;
 static char *privkey = NULL;
 static char *certsdir = NULL;
 
-char *test_mk_file_path(const char *dir, const char *file)
-{
+char *test_mk_file_path(const char *dir, const char *file) {
 #ifndef OPENSSL_SYS_VMS
     const char *sep = "/";
 #else
@@ -33,8 +33,7 @@ char *test_mk_file_path(const char *dir, const char *file)
     return full_file;
 }
 
-static int test_oqs_groups(const char *group_name)
-{
+static int test_oqs_groups(const char *group_name, int dtls_flag) {
     SSL_CTX *cctx = NULL, *sctx = NULL;
     SSL *clientssl = NULL, *serverssl = NULL;
     int ret = 1, testresult = 0;
@@ -43,13 +42,15 @@ static int test_oqs_groups(const char *group_name)
         printf("Not testing disabled algorithm %s.\n", group_name);
         return 1;
     }
-    testresult = create_tls1_3_ctx_pair(libctx, &sctx, &cctx, cert, privkey);
+    testresult =
+        create_tls1_3_ctx_pair(libctx, &sctx, &cctx, cert, privkey, dtls_flag);
     if (!testresult) {
         ret = -1;
         goto err;
     }
 
-    testresult = create_tls_objects(sctx, cctx, &serverssl, &clientssl);
+    testresult =
+        create_tls_objects(sctx, cctx, &serverssl, &clientssl, dtls_flag);
 
     if (!testresult) {
         ret = -2;
@@ -83,12 +84,11 @@ err:
     return ret;
 }
 
-static int test_group(const OSSL_PARAM params[], void *data)
-{
+static int test_group(const OSSL_PARAM params[], void *data) {
     int ret = 1;
     int *errcnt = (int *)data;
-    const OSSL_PARAM *p
-        = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_GROUP_NAME);
+    const OSSL_PARAM *p =
+        OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_GROUP_NAME);
     if (p == NULL || p->data_type != OSSL_PARAM_UTF8_STRING) {
         ret = -1;
         goto err;
@@ -96,7 +96,7 @@ static int test_group(const OSSL_PARAM params[], void *data)
 
     char *group_name = OPENSSL_strdup(p->data);
 
-    ret = test_oqs_groups(group_name);
+    ret = test_oqs_groups(group_name, 0);
 
     if (ret >= 0) {
         fprintf(stderr,
@@ -112,13 +112,30 @@ static int test_group(const OSSL_PARAM params[], void *data)
         (*errcnt)++;
     }
 
+#ifdef DTLS1_3_VERSION
+    ret = test_oqs_groups(group_name, 1);
+
+    if (ret >= 0) {
+        fprintf(stderr,
+                cGREEN "  DTLS-KEM handshake test succeeded: %s" cNORM "\n",
+                group_name);
+    } else {
+        fprintf(stderr,
+                cRED
+                "  DTLS-KEM handshake test failed: %s, return code: %d" cNORM
+                "\n",
+                group_name, ret);
+        ERR_print_errors_fp(stderr);
+        (*errcnt)++;
+    }
+#endif
+
 err:
     OPENSSL_free(group_name);
     return ret;
 }
 
-static int test_provider_groups(OSSL_PROVIDER *provider, void *vctx)
-{
+static int test_provider_groups(OSSL_PROVIDER *provider, void *vctx) {
     const char *provname = OSSL_PROVIDER_get0_name(provider);
 
     if (!strcmp(provname, PROVIDER_NAME_OQS))
@@ -128,8 +145,7 @@ static int test_provider_groups(OSSL_PROVIDER *provider, void *vctx)
         return 1;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     size_t i;
     int errcnt = 0, test = 0;
 

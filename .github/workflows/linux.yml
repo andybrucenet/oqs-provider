@@ -7,33 +7,40 @@ on:
     branches: [ "main" ]
 
 jobs:
-
+  coding_style_tests:
+    uses: ./.github/workflows/coding_style.yml
   linux_baseline:
     runs-on: ubuntu-latest
+    needs: [coding_style_tests]
     strategy:
       fail-fast: false
       matrix:
-        cmake-params: [ "", "-DOQS_KEM_ENCODERS=ON" ]
+        cmake-params: [ "" ]
+        libjade-build: ["ON", "OFF"]
     container:
       image: openquantumsafe/ci-ubuntu-jammy:latest
     env:
       MAKE_PARAMS: "-j 18"
+      LIBOQS_BRANCH: "main"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
       - name: Full build
-        run: OQSPROV_CMAKE_PARAMS=${{ matrix.cmake-params}} ./scripts/fullbuild.sh
-      - name: Enable sibling oqsprovider for testing
-        run: cd _build/lib && ln -s oqsprovider.so oqsprovider2.so
+        run: OQSPROV_CMAKE_PARAMS=${{ matrix.cmake-params}} OQS_LIBJADE_BUILD=${{ matrix.libjade-build }} ./scripts/fullbuild.sh
       - name: Test
         run: ./scripts/runtests.sh -V
 
   linux_intel:
     runs-on: ubuntu-latest
+    needs: [coding_style_tests]
     strategy:
       fail-fast: false
       matrix:
-        ossl-branch: [openssl-3.1.0, master]
+        ossl-branch: [openssl-3.4.1, openssl-3.5.0, master] # retain openssl-3.4.1 to test non-OpenSSL PQ alg implementations
+        cmake-params: [ "", "-DOQS_KEM_ENCODERS=ON" ]
+        libjade-build:
+          - "ON" 
+          - "OFF"
         include:
           - name: alpine
             container: openquantumsafe/ci-alpine-amd64:latest
@@ -46,16 +53,17 @@ jobs:
       image: ${{ matrix.container }}
     env:
       MAKE_PARAMS: "-j 18"
+      LIBOQS_BRANCH: "main"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
+      - name: Add safe directory exception
+        run: git config --global --add safe.directory /__w/oqs-provider/oqs-provider
       - name: Full build
-        run: OPENSSL_BRANCH=${{ matrix.ossl-branch }} LIBOQS_BRANCH=main ./scripts/fullbuild.sh
-      - name: Enable sibling oqsprovider for testing
-        run: cd _build/lib && ln -s oqsprovider.so oqsprovider2.so
+        run: OQSPROV_CMAKE_PARAMS=${{ matrix.cmake-params}} OPENSSL_BRANCH=${{ matrix.ossl-branch }} LIBOQS_BRANCH=main OQS_LIBJADE_BUILD=${{ matrix.libjade-build }} ./scripts/fullbuild.sh
       - name: Test
         run: ./scripts/runtests.sh -V
-      - name: Verify nothing changes on re-generate code
+      - name: Re-generate code
         run: |
           apt-get update && apt-get install -y clang-format && \
           git config --global user.name "ciuser" && \
@@ -63,22 +71,28 @@ jobs:
           git config --global --add safe.directory `pwd` && \
           export LIBOQS_SRC_DIR=`pwd`/liboqs && \
           ! pip3 install -r oqs-template/requirements.txt 2>&1 | grep ERROR && \
-          python3 oqs-template/generate.py && \
-          find . -type f -and '(' -name '*.h' -or -name '*.c' -or -name '*.inc' ')' | xargs clang-format -i && \
-          git diff && \
-          ! git status | grep modified
+          python3 oqs-template/generate.py
+      - name: Full re-build & test
+        run: rm -rf _build && OPENSSL_BRANCH=${{ matrix.ossl-branch }} LIBOQS_BRANCH=main OQS_LIBJADE_BUILD=${{ matrix.libjade-build }} ./scripts/fullbuild.sh && ./scripts/runtests.sh
       - name: Build .deb install package
-        run: cpack
+        run: cpack -C DebPack
         working-directory: _build
       - name: Retain .deb installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: oqsprovider-x64
+          name: ${{ matrix.ossl-branch }} ${{ matrix.cmake-params }} ${{ matrix.libjade-build }} oqsprovider-x64
           path: _build/*.deb
+      - name: Verify that the static library is copied to the install directory.
+        run: |
+          OPENSSL_BRANCH=${{ matrix.ossl-branch }} OQSPROV_CMAKE_PARAMS="-DOQS_PROVIDER_BUILD_STATIC=ON" ./scripts/fullbuild.sh -f && \
+          mkdir -p _sysroot/ && \
+          cmake --install _build --prefix _sysroot/ && \
+          stat _sysroot/lib/liboqsprovider.a
 
   asan_linux_intel:
     name: "Security checks"
     runs-on: ubuntu-latest
+    needs: [coding_style_tests]
     strategy:
       fail-fast: false
     container:
@@ -88,13 +102,13 @@ jobs:
       CXX: "clang++"
       ASAN_C_FLAGS: "-fsanitize=address -fno-omit-frame-pointer"
       ASAN_OPTIONS: "detect_stack_use_after_return=1,detect_leaks=1"
-      OPENSSL_BRANCH: "openssl-3.1"
+      OPENSSL_BRANCH: "openssl-3.5.0"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
 
       - name: Install dependencies
-        run: apt-get update && apt-get install -y clang llvm ninja-build git cmake libclang-rt-14-dev libclang-common-14-dev
+        run: apt-get update && apt-get install -y clang llvm ninja-build git cmake libclang-14-dev libclang-common-14-dev
 
       - name: Clone and build OpenSSL(3) with ASan
         run: |
@@ -148,12 +162,12 @@ jobs:
         run: |
           ctest --test-dir build \
             --output-on-failure \
-            --extra-verbose \
-            --repeat until-pass:5
+            --extra-verbose
 
   linux_aarch64:
     name: "aarch64 cross-compilation"
     runs-on: ubuntu-latest
+    needs: [coding_style_tests]
     strategy:
       fail-fast: false
     container:
@@ -165,7 +179,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
 
       - name: Install dependencies
         run: apt-get update && apt-get install -y ninja-build git cmake nodejs gcc-aarch64-linux-gnu libc6-dev-arm64-cross qemu-user
@@ -231,10 +245,12 @@ jobs:
 
       - name: Verify the .deb file target architecture.
         working-directory: build
-        run: dpkg -I oqs-provider-*.deb | grep -q "Architecture: arm64"
+        run: |
+            dpkg -I oqs-provider-*.deb | grep -q "Architecture: arm64"
 
       - name: Retain .deb installer
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: oqsprovider-aarch64
           path: build/*.deb
+

@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0 AND MIT
 
-#include "test_common.h"
-#include "tlstest_helpers.h"
+#include <errno.h>
 #include <openssl/core_names.h>
 #include <openssl/provider.h>
 #include <openssl/ssl.h>
-#include <string.h>
-
 #include <openssl/trace.h>
-
-#include <errno.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include "test_common.h"
+#include "tlstest_helpers.h"
 
 static OSSL_LIB_CTX *libctx = NULL;
 static char *modulename = NULL;
@@ -19,18 +18,17 @@ static char *configfile = NULL;
 static char *certsdir = NULL;
 
 #ifdef OSSL_CAPABILITY_TLS_SIGALG_NAME
-static int test_oqs_tlssig(const char *sig_name)
-{
+static int test_oqs_tlssig(const char *sig_name, int dtls_flag) {
     SSL_CTX *cctx = NULL, *sctx = NULL;
     SSL *clientssl = NULL, *serverssl = NULL;
     int ret = 1, testresult = 0;
     char certpath[300];
     char privkeypath[300];
-#    ifndef OPENSSL_SYS_VMS
+#ifndef OPENSSL_SYS_VMS
     const char *sep = "/";
-#    else
+#else
     const char *sep = "";
-#    endif
+#endif
 
     if (!alg_is_enabled(sig_name)) {
         printf("Not testing disabled algorithm %s.\n", sig_name);
@@ -55,15 +53,16 @@ static int test_oqs_tlssig(const char *sig_name)
         goto err;
     }
 
-    testresult
-        = create_tls1_3_ctx_pair(libctx, &sctx, &cctx, certpath, privkeypath);
+    testresult = create_tls1_3_ctx_pair(libctx, &sctx, &cctx, certpath,
+                                        privkeypath, dtls_flag);
 
     if (!testresult) {
         ret = -1;
         goto err;
     }
 
-    testresult = create_tls_objects(sctx, cctx, &serverssl, &clientssl);
+    testresult =
+        create_tls_objects(sctx, cctx, &serverssl, &clientssl, dtls_flag);
 
     if (!testresult) {
         ret = -2;
@@ -95,12 +94,11 @@ EVP_SIGNATURE_get0_name(evpsig));
 }
 */
 
-static int test_signature(const OSSL_PARAM params[], void *data)
-{
+static int test_signature(const OSSL_PARAM params[], void *data) {
     int ret = 0;
     int *errcnt = (int *)data;
-    const OSSL_PARAM *p
-        = OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_NAME);
+    const OSSL_PARAM *p =
+        OSSL_PARAM_locate_const(params, OSSL_CAPABILITY_TLS_SIGALG_NAME);
 
     if (p == NULL || p->data_type != OSSL_PARAM_UTF8_STRING) {
         ret = -1;
@@ -112,7 +110,7 @@ static int test_signature(const OSSL_PARAM params[], void *data)
     if (sigalg_name == NULL)
         return 0;
 
-    ret = test_oqs_tlssig(sigalg_name);
+    ret = test_oqs_tlssig(sigalg_name, 0);
 
     if (ret >= 0) {
         fprintf(stderr,
@@ -128,13 +126,30 @@ static int test_signature(const OSSL_PARAM params[], void *data)
         (*errcnt)++;
     }
 
+#ifdef DTLS1_3_VERSION
+    ret = test_oqs_tlssig(sigalg_name, 1);
+
+    if (ret >= 0) {
+        fprintf(stderr,
+                cGREEN "  DTLS-SIG handshake test succeeded: %s" cNORM "\n",
+                sigalg_name);
+    } else {
+        fprintf(stderr,
+                cRED
+                "  DTLS-SIG handshake test failed: %s, return code: %d" cNORM
+                "\n",
+                sigalg_name, ret);
+        ERR_print_errors_fp(stderr);
+        (*errcnt)++;
+    }
+#endif
+
 err:
     OPENSSL_free(sigalg_name);
     return ret;
 }
 
-static int test_provider_signatures(OSSL_PROVIDER *provider, void *vctx)
-{
+static int test_provider_signatures(OSSL_PROVIDER *provider, void *vctx) {
     const char *provname = OSSL_PROVIDER_get0_name(provider);
 
     if (!strcmp(provname, PROVIDER_NAME_OQS))
@@ -145,8 +160,7 @@ static int test_provider_signatures(OSSL_PROVIDER *provider, void *vctx)
 }
 #endif /* OSSL_CAPABILITY_TLS_SIGALG_NAME */
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     size_t i;
     int errcnt = 0, test = 0;
 
@@ -171,9 +185,9 @@ int main(int argc, char *argv[])
     // crashes: EVP_SIGNATURE_do_all_provided(libctx, test_oqs_sigs, &errcnt);
     OSSL_PROVIDER_do_all(libctx, test_provider_signatures, &errcnt);
 #else
-    fprintf(
-        stderr,
-        "TLS-SIG handshake test not enabled. Update OpenSSL to more current version.\n");
+    fprintf(stderr,
+            "TLS-SIG handshake test not enabled. Update OpenSSL to more "
+            "current version.\n");
 #endif
 
     OSSL_LIB_CTX_free(libctx);

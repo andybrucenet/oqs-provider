@@ -11,13 +11,13 @@ ENCODER_w_structure("{{ kem['name_group'] }}", {{ kem['name_group'] }}, der, Sub
 ENCODER_w_structure("{{ kem['name_group'] }}", {{ kem['name_group'] }}, pem, SubjectPublicKeyInfo),
 ENCODER_TEXT("{{ kem['name_group'] }}", {{ kem['name_group'] }}),
 {% for hybrid in kem['hybrids'] -%}
-ENCODER_w_structure("{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}", {{hybrid['hybrid_group']}}_{{ kem['name_group'] }}, der, PrivateKeyInfo),
-ENCODER_w_structure("{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}", {{hybrid['hybrid_group']}}_{{ kem['name_group'] }}, pem, PrivateKeyInfo),
-ENCODER_w_structure("{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}", {{hybrid['hybrid_group']}}_{{ kem['name_group'] }}, der, EncryptedPrivateKeyInfo),
-ENCODER_w_structure("{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}", {{hybrid['hybrid_group']}}_{{ kem['name_group'] }}, pem, EncryptedPrivateKeyInfo),
-ENCODER_w_structure("{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}", {{hybrid['hybrid_group']}}_{{ kem['name_group'] }}, der, SubjectPublicKeyInfo),
-ENCODER_w_structure("{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}", {{hybrid['hybrid_group']}}_{{ kem['name_group'] }}, pem, SubjectPublicKeyInfo),
-ENCODER_TEXT("{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}", {{hybrid['hybrid_group']}}_{{ kem['name_group'] }}),
+ENCODER_w_structure({% if 'standard_name' in hybrid %}"{{hybrid['standard_name']}}"{% else %}"{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}"{% endif %}, {% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}, der, PrivateKeyInfo),
+ENCODER_w_structure({% if 'standard_name' in hybrid %}"{{hybrid['standard_name']}}"{% else %}"{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}"{% endif %}, {% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}, pem, PrivateKeyInfo),
+ENCODER_w_structure({% if 'standard_name' in hybrid %}"{{hybrid['standard_name']}}"{% else %}"{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}"{% endif %}, {% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}, der, EncryptedPrivateKeyInfo),
+ENCODER_w_structure({% if 'standard_name' in hybrid %}"{{hybrid['standard_name']}}"{% else %}"{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}"{% endif %}, {% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}, pem, EncryptedPrivateKeyInfo),
+ENCODER_w_structure({% if 'standard_name' in hybrid %}"{{hybrid['standard_name']}}"{% else %}"{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}"{% endif %}, {% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}, der, SubjectPublicKeyInfo),
+ENCODER_w_structure({% if 'standard_name' in hybrid %}"{{hybrid['standard_name']}}"{% else %}"{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}"{% endif %}, {% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}, pem, SubjectPublicKeyInfo),
+ENCODER_TEXT({% if 'standard_name' in hybrid %}"{{hybrid['standard_name']}}"{% else %}"{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}"{% endif %}, {% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}),
 {% endfor -%}
 #endif
 {%- endfor %}
@@ -42,15 +42,6 @@ ENCODER_w_structure("{{ classical_alg['name'] }}_{{ variant['name'] }}", {{ clas
 ENCODER_w_structure("{{ classical_alg['name'] }}_{{ variant['name'] }}", {{ classical_alg['name'] }}_{{ variant['name'] }}, der, SubjectPublicKeyInfo),
 ENCODER_w_structure("{{ classical_alg['name'] }}_{{ variant['name'] }}", {{ classical_alg['name'] }}_{{ variant['name'] }}, pem, SubjectPublicKeyInfo),
 ENCODER_TEXT("{{ classical_alg['name'] }}_{{ variant['name'] }}", {{ classical_alg['name'] }}_{{ variant['name'] }}),
-{% endfor -%}
-{% for composite_alg in variant['composite'] -%}
-ENCODER_w_structure("{{ variant['name'] }}_{{ composite_alg['name'] }}", {{ variant['name'] }}_{{ composite_alg['name'] }}, der, PrivateKeyInfo),
-ENCODER_w_structure("{{ variant['name'] }}_{{ composite_alg['name'] }}", {{ variant['name'] }}_{{ composite_alg['name'] }}, pem, PrivateKeyInfo),
-ENCODER_w_structure("{{ variant['name'] }}_{{ composite_alg['name'] }}", {{ variant['name'] }}_{{ composite_alg['name'] }}, der, EncryptedPrivateKeyInfo),
-ENCODER_w_structure("{{ variant['name'] }}_{{ composite_alg['name'] }}", {{ variant['name'] }}_{{ composite_alg['name'] }}, pem, EncryptedPrivateKeyInfo),
-ENCODER_w_structure("{{ variant['name'] }}_{{ composite_alg['name'] }}", {{ variant['name'] }}_{{ composite_alg['name'] }}, der, SubjectPublicKeyInfo),
-ENCODER_w_structure("{{ variant['name'] }}_{{ composite_alg['name'] }}", {{ variant['name'] }}_{{ composite_alg['name'] }}, pem, SubjectPublicKeyInfo),
-ENCODER_TEXT("{{ variant['name'] }}_{{ composite_alg['name'] }}", {{ variant['name'] }}_{{ composite_alg['name'] }}),
 {% endfor -%}
 #endif
    {%- endfor %}

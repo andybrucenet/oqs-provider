@@ -1,10 +1,10 @@
 if (WIN32)
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 else()
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 endif()
 project(oqs-provider LANGUAGES C)
-set(OQSPROVIDER_VERSION_TEXT "0.5.4-dev")
+set(OQSPROVIDER_VERSION_TEXT "0.10.0")
 set(CMAKE_C_STANDARD 11)
 set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS ON)
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -38,13 +38,6 @@ if(${NOPUBKEY_IN_PRIVKEY})
 else()
     message(STATUS "Build will store public keys in PKCS#8 structures")
 endif()
-option(USE_ENCODING_LIB "Build with external encoding library for SPKI/PKCS#8 " OFF)
-if(${USE_ENCODING_LIB})
-    message(STATUS "Build will include external encoding library for SPKI/PKCS#8")
-    add_compile_definitions( USE_ENCODING_LIB )
-else()
-    message(STATUS "Build will not include external encoding library for SPKI/PKCS#8")
-endif()
 
 option(OQS_PROVIDER_BUILD_STATIC "Build a static library instead of a shared library" OFF)
 if(OQS_PROVIDER_BUILD_STATIC AND BUILD_SHARED_LIBS)
@@ -64,17 +57,20 @@ cmake_path(GET OPENSSL_CRYPTO_LIBRARY PARENT_PATH OQS_MODULES_PARENT_PATH)
 cmake_path(APPEND OQS_MODULES_PARENT_PATH "ossl-modules" OUTPUT_VARIABLE OPENSSL_MODULES_PATH)
 else()
 get_filename_component(OPENSSL_LIB_DIR ${OPENSSL_CRYPTO_LIBRARY} DIRECTORY)
-set(OPENSSL_MODULES_PATH ${OPENSSL_LIB_DIR}/ossl-modules)
+if(NOT DEFINED OPENSSL_MODULES_PATH)
+    set(OPENSSL_MODULES_PATH ${OPENSSL_LIB_DIR}/ossl-modules CACHE PATH "Path to OpenSSL modules")
+endif()
 endif()
 
 # Add required include for liboqs;
-# this fails OOTB for Android builds; see https://stackoverflow.com/a/73886192/1318024.
-# Workaround: use CMAKE_FIND_ROOT_PATH_BOTH
+# ABr: this fails OOTB for Android builds; see https://stackoverflow.com/a/73886192/1318024.
+# ABr: Workaround: use CMAKE_FIND_ROOT_PATH_BOTH
 find_package(liboqs REQUIRED CMAKE_FIND_ROOT_PATH_BOTH)
 if (NOT LIBOQS_INCLUDE_DIR)
   get_target_property(LIBOQS_INCLUDE_DIR OQS::oqs INTERFACE_INCLUDE_DIRECTORIES)
 endif()
-message(STATUS "liboqs found: Include dir at ${LIBOQS_INCLUDE_DIR}")
+get_target_property(LIBOQS_LIBRARY_TYPE OQS::oqs TYPE)
+message(STATUS "liboqs found: Include dir at ${LIBOQS_INCLUDE_DIR} (${LIBOQS_LIBRARY_TYPE})")
 include_directories(${LIBOQS_INCLUDE_DIR})
 
 # Hints the compiler on the fact that the provider is being compiled into a static library.
@@ -91,6 +87,7 @@ endfunction()
 add_subdirectory(oqsprov)
 
 # Testing
+include(CTest)
 enable_testing()
 add_subdirectory(test)
 

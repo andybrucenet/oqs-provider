@@ -5,8 +5,8 @@
 DECODER_w_structure("{{ kem['name_group'] }}", der, PrivateKeyInfo, {{ kem['name_group'] }}),
 DECODER_w_structure("{{ kem['name_group'] }}", der, SubjectPublicKeyInfo, {{ kem['name_group'] }}),
 {% for hybrid in kem['hybrids'] -%}
-DECODER_w_structure("{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}", der, PrivateKeyInfo, {{hybrid['hybrid_group']}}_{{ kem['name_group'] }}),
-DECODER_w_structure("{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}", der, SubjectPublicKeyInfo, {{hybrid['hybrid_group']}}_{{ kem['name_group'] }}),
+DECODER_w_structure({% if 'standard_name' in hybrid %}"{{hybrid['standard_name']}}"{% else %}"{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}"{% endif %}, der, PrivateKeyInfo, {% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}),
+DECODER_w_structure({% if 'standard_name' in hybrid %}"{{hybrid['standard_name']}}"{% else %}"{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}"{% endif %}, der, SubjectPublicKeyInfo, {% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}),
 {%- endfor %}
 #endif
 {%- endfor %}
@@ -21,10 +21,6 @@ DECODER_w_structure("{{ variant['name'] }}", der, SubjectPublicKeyInfo, {{ varia
      {%- for classical_alg in variant['mix_with'] -%}
 DECODER_w_structure("{{ classical_alg['name'] }}_{{ variant['name'] }}", der, PrivateKeyInfo, {{ classical_alg['name'] }}_{{ variant['name'] }}),
 DECODER_w_structure("{{ classical_alg['name'] }}_{{ variant['name'] }}", der, SubjectPublicKeyInfo, {{ classical_alg['name'] }}_{{ variant['name'] }}),
-     {%- endfor %}
-     {%- for composite_alg in variant['composite'] -%}
-DECODER_w_structure("{{ variant['name'] }}_{{ composite_alg['name'] }}", der, PrivateKeyInfo, {{ variant['name'] }}_{{ composite_alg['name'] }}),
-DECODER_w_structure("{{ variant['name'] }}_{{ composite_alg['name'] }}", der, SubjectPublicKeyInfo, {{ variant['name'] }}_{{ composite_alg['name'] }}),
      {%- endfor %}
 #endif
    {%- endfor %}

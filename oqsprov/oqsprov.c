@@ -7,8 +7,6 @@
  *
  */
 
-#include "oqs_prov.h"
-#include <errno.h>
 #include <openssl/core.h>
 #include <openssl/core_dispatch.h>
 #include <openssl/core_names.h>
@@ -19,21 +17,28 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "oqs_prov.h"
+
 #ifdef NDEBUG
-#    define OQS_PROV_PRINTF(a)
-#    define OQS_PROV_PRINTF2(a, b)
-#    define OQS_PROV_PRINTF3(a, b, c)
+#define OQS_PROV_PRINTF(a)
+#define OQS_PROV_PRINTF2(a, b)
+#define OQS_PROV_PRINTF3(a, b, c)
 #else
-#    define OQS_PROV_PRINTF(a) \
-        if (getenv("OQSPROV")) \
-        printf(a)
-#    define OQS_PROV_PRINTF2(a, b) \
-        if (getenv("OQSPROV"))     \
-        printf(a, b)
-#    define OQS_PROV_PRINTF3(a, b, c) \
-        if (getenv("OQSPROV"))        \
-        printf(a, b, c)
+#define OQS_PROV_PRINTF(a)                                                     \
+    if (getenv("OQSPROV"))                                                     \
+    printf(a)
+#define OQS_PROV_PRINTF2(a, b)                                                 \
+    if (getenv("OQSPROV"))                                                     \
+    printf(a, b)
+#define OQS_PROV_PRINTF3(a, b, c)                                              \
+    if (getenv("OQSPROV"))                                                     \
+    printf(a, b, c)
 #endif // NDEBUG
+
+static STACK_OF(OPENSSL_STRING) *rt_disabled_algs = NULL;
+STACK_OF(OPENSSL_STRING) * oqsprov_get_rt_disabled_algs() {
+    return rt_disabled_algs;
+}
 
 /*
  * Forward declarations to ensure that interface functions are correctly
@@ -50,177 +55,100 @@ extern OSSL_FUNC_provider_get_capabilities_fn oqs_provider_get_capabilities;
 ///// OQS_TEMPLATE_FRAGMENT_ASSIGN_SIG_OIDS_START
 
 #ifdef OQS_KEM_ENCODERS
-#    define OQS_OID_CNT 202
+#define OQS_OID_CNT 180
 #else
-#    define OQS_OID_CNT 96
+#define OQS_OID_CNT 110
 #endif
 const char *oqs_oid_alg_list[OQS_OID_CNT] = {
 
 #ifdef OQS_KEM_ENCODERS
-
-    "1.3.9999.99.17",
+    NULL,
     "frodo640aes",
-    "1.3.9999.99.16",
+    NULL,
     "p256_frodo640aes",
-    "1.3.9999.99.1",
+    NULL,
     "x25519_frodo640aes",
-    "1.3.9999.99.19",
+    NULL,
     "frodo640shake",
-    "1.3.9999.99.18",
+    NULL,
     "p256_frodo640shake",
-    "1.3.9999.99.2",
+    NULL,
     "x25519_frodo640shake",
-    "1.3.9999.99.21",
+    NULL,
     "frodo976aes",
-    "1.3.9999.99.20",
+    NULL,
     "p384_frodo976aes",
-    "1.3.9999.99.3",
+    NULL,
     "x448_frodo976aes",
-    "1.3.9999.99.23",
+    NULL,
     "frodo976shake",
-    "1.3.9999.99.22",
+    NULL,
     "p384_frodo976shake",
-    "1.3.9999.99.4",
+    NULL,
     "x448_frodo976shake",
-    "1.3.9999.99.25",
+    NULL,
     "frodo1344aes",
-    "1.3.9999.99.24",
+    NULL,
     "p521_frodo1344aes",
-    "1.3.9999.99.27",
+    NULL,
     "frodo1344shake",
-    "1.3.9999.99.26",
+    NULL,
     "p521_frodo1344shake",
-    "1.3.6.1.4.1.2.267.8.2.2",
-    "kyber512",
-    "1.3.9999.99.28",
-    "p256_kyber512",
-    "1.3.9999.99.5",
-    "x25519_kyber512",
-    "1.3.6.1.4.1.2.267.8.3.3",
-    "kyber768",
-    "1.3.9999.99.29",
-    "p384_kyber768",
-    "1.3.9999.99.6",
-    "x448_kyber768",
-    "1.3.9999.99.7",
-    "x25519_kyber768",
-    "1.3.9999.99.8",
-    "p256_kyber768",
-    "1.3.6.1.4.1.2.267.8.4.4",
-    "kyber1024",
-    "1.3.9999.99.30",
-    "p521_kyber1024",
-    "1.3.6.1.4.1.22554.5.6.1",
+    "2.16.840.1.101.3.4.4.1",
     "mlkem512",
     "1.3.6.1.4.1.22554.5.7.1",
     "p256_mlkem512",
     "1.3.6.1.4.1.22554.5.8.1",
     "x25519_mlkem512",
-    "1.3.6.1.4.1.22554.5.6.2",
+    "2.16.840.1.101.3.4.4.2",
     "mlkem768",
-    "1.3.9999.99.31",
+    NULL,
     "p384_mlkem768",
-    "1.3.9999.99.9",
+    NULL,
     "x448_mlkem768",
-    "1.3.9999.99.10",
-    "x25519_mlkem768",
-    "1.3.9999.99.11",
-    "p256_mlkem768",
-    "1.3.6.1.4.1.22554.5.6.3",
+    NULL,
+    "X25519MLKEM768",
+    NULL,
+    "SecP256r1MLKEM768",
+    "2.16.840.1.101.3.4.4.3",
     "mlkem1024",
-    "1.3.9999.99.32",
+    NULL,
     "p521_mlkem1024",
     "1.3.6.1.4.1.42235.6",
-    "p384_mlkem1024",
-    "1.3.9999.99.34",
+    "SecP384r1MLKEM1024",
+    NULL,
     "bikel1",
-    "1.3.9999.99.33",
+    NULL,
     "p256_bikel1",
-    "1.3.9999.99.12",
+    NULL,
     "x25519_bikel1",
-    "1.3.9999.99.36",
+    NULL,
     "bikel3",
-    "1.3.9999.99.35",
+    NULL,
     "p384_bikel3",
-    "1.3.9999.99.13",
+    NULL,
     "x448_bikel3",
-    "1.3.9999.99.38",
+    NULL,
     "bikel5",
-    "1.3.9999.99.37",
+    NULL,
     "p521_bikel5",
-    "1.3.9999.99.40",
-    "hqc128",
-    "1.3.9999.99.39",
-    "p256_hqc128",
-    "1.3.9999.99.14",
-    "x25519_hqc128",
-    "1.3.9999.99.42",
-    "hqc192",
-    "1.3.9999.99.41",
-    "p384_hqc192",
-    "1.3.9999.99.15",
-    "x448_hqc192",
-    "1.3.9999.99.44",
-    "hqc256",
-    "1.3.9999.99.43",
-    "p521_hqc256",
 
 #endif /* OQS_KEM_ENCODERS */
 
-    "1.3.6.1.4.1.2.267.7.4.4",
-    "dilithium2",
-    "1.3.9999.2.7.1",
-    "p256_dilithium2",
-    "1.3.9999.2.7.2",
-    "rsa3072_dilithium2",
-    "1.3.6.1.4.1.2.267.7.6.5",
-    "dilithium3",
-    "1.3.9999.2.7.3",
-    "p384_dilithium3",
-    "1.3.6.1.4.1.2.267.7.8.7",
-    "dilithium5",
-    "1.3.9999.2.7.4",
-    "p521_dilithium5",
-    "1.3.6.1.4.1.2.267.12.4.4",
+    "2.16.840.1.101.3.4.3.17",
     "mldsa44",
-    "1.3.9999.7.1",
+    "1.3.9999.7.5",
     "p256_mldsa44",
-    "1.3.9999.7.2",
+    "1.3.9999.7.6",
     "rsa3072_mldsa44",
-    "2.16.840.1.114027.80.8.1.1",
-    "mldsa44_pss2048",
-    "2.16.840.1.114027.80.8.1.2",
-    "mldsa44_rsa2048",
-    "2.16.840.1.114027.80.8.1.3",
-    "mldsa44_ed25519",
-    "2.16.840.1.114027.80.8.1.4",
-    "mldsa44_p256",
-    "2.16.840.1.114027.80.8.1.5",
-    "mldsa44_bp256",
-    "1.3.6.1.4.1.2.267.12.6.5",
+    "2.16.840.1.101.3.4.3.18",
     "mldsa65",
-    "1.3.9999.7.3",
+    "1.3.9999.7.7",
     "p384_mldsa65",
-    "2.16.840.1.114027.80.8.1.6",
-    "mldsa65_pss3072",
-    "2.16.840.1.114027.80.8.1.7",
-    "mldsa65_rsa3072",
-    "2.16.840.1.114027.80.8.1.8",
-    "mldsa65_p256",
-    "2.16.840.1.114027.80.8.1.9",
-    "mldsa65_bp256",
-    "2.16.840.1.114027.80.8.1.10",
-    "mldsa65_ed25519",
-    "1.3.6.1.4.1.2.267.12.8.7",
+    "2.16.840.1.101.3.4.3.19",
     "mldsa87",
-    "1.3.9999.7.4",
+    "1.3.9999.7.8",
     "p521_mldsa87",
-    "2.16.840.1.114027.80.8.1.11",
-    "mldsa87_p384",
-    "2.16.840.1.114027.80.8.1.12",
-    "mldsa87_bp384",
-    "2.16.840.1.114027.80.8.1.13",
-    "mldsa87_ed448",
     "1.3.9999.3.11",
     "falcon512",
     "1.3.9999.3.12",
@@ -263,11 +191,64 @@ const char *oqs_oid_alg_list[OQS_OID_CNT] = {
     "p256_sphincsshake128fsimple",
     "1.3.9999.6.7.15",
     "rsa3072_sphincsshake128fsimple",
+    "1.3.9999.8.1.3",
+    "mayo1",
+    "1.3.9999.8.1.4",
+    "p256_mayo1",
+    "1.3.9999.8.2.3",
+    "mayo2",
+    "1.3.9999.8.2.4",
+    "p256_mayo2",
+    "1.3.9999.8.3.3",
+    "mayo3",
+    "1.3.9999.8.3.4",
+    "p384_mayo3",
+    "1.3.9999.8.5.3",
+    "mayo5",
+    "1.3.9999.8.5.4",
+    "p521_mayo5",
+    "1.3.6.1.4.1.62245.2.1.1.2",
+    "CROSSrsdp128balanced",
+    "1.3.9999.9.5.1",
+    "OV_Is_pkc",
+    "1.3.9999.9.5.2",
+    "p256_OV_Is_pkc",
+    "1.3.9999.9.6.1",
+    "OV_Ip_pkc",
+    "1.3.9999.9.6.2",
+    "p256_OV_Ip_pkc",
+    "1.3.9999.9.9.1",
+    "OV_Is_pkc_skc",
+    "1.3.9999.9.9.2",
+    "p256_OV_Is_pkc_skc",
+    "1.3.9999.9.10.1",
+    "OV_Ip_pkc_skc",
+    "1.3.9999.9.10.2",
+    "p256_OV_Ip_pkc_skc",
+    "1.3.9999.10.1.1",
+    "snova2454",
+    "1.3.9999.10.1.2",
+    "p256_snova2454",
+    "1.3.9999.10.3.1",
+    "snova2454esk",
+    "1.3.9999.10.3.2",
+    "p256_snova2454esk",
+    "1.3.9999.10.5.1",
+    "snova37172",
+    "1.3.9999.10.5.2",
+    "p256_snova37172",
+    "1.3.9999.10.10.1",
+    "snova2455",
+    "1.3.9999.10.10.2",
+    "p384_snova2455",
+    "1.3.9999.10.12.1",
+    "snova2965",
+    "1.3.9999.10.12.2",
+    "p521_snova2965",
     ///// OQS_TEMPLATE_FRAGMENT_ASSIGN_SIG_OIDS_END
 };
 
-int oqs_patch_oids(void)
-{
+int oqs_patch_oids(void) {
     ///// OQS_TEMPLATE_FRAGMENT_OID_PATCHING_START
     {
         const char *envval = NULL;
@@ -312,420 +293,192 @@ int oqs_patch_oids(void)
 
         if ((envval = getenv("OQS_OID_P521_FRODO1344SHAKE")))
             oqs_oid_alg_list[30] = envval;
-        if ((envval = getenv("OQS_OID_KYBER512")))
+        if ((envval = getenv("OQS_OID_MLKEM512")))
             oqs_oid_alg_list[32] = envval;
 
-        if ((envval = getenv("OQS_OID_P256_KYBER512")))
+        if ((envval = getenv("OQS_OID_P256_MLKEM512")))
             oqs_oid_alg_list[34] = envval;
-        if ((envval = getenv("OQS_OID_X25519_KYBER512")))
+        if ((envval = getenv("OQS_OID_X25519_MLKEM512")))
             oqs_oid_alg_list[36] = envval;
-        if ((envval = getenv("OQS_OID_KYBER768")))
+        if ((envval = getenv("OQS_OID_MLKEM768")))
             oqs_oid_alg_list[38] = envval;
 
-        if ((envval = getenv("OQS_OID_P384_KYBER768")))
+        if ((envval = getenv("OQS_OID_P384_MLKEM768")))
             oqs_oid_alg_list[40] = envval;
-        if ((envval = getenv("OQS_OID_X448_KYBER768")))
+        if ((envval = getenv("OQS_OID_X448_MLKEM768")))
             oqs_oid_alg_list[42] = envval;
-        if ((envval = getenv("OQS_OID_X25519_KYBER768")))
+        if ((envval = getenv("OQS_OID_X25519MLKEM768")))
             oqs_oid_alg_list[44] = envval;
-        if ((envval = getenv("OQS_OID_P256_KYBER768")))
+        if ((envval = getenv("OQS_OID_SECP256R1MLKEM768")))
             oqs_oid_alg_list[46] = envval;
-        if ((envval = getenv("OQS_OID_KYBER1024")))
+        if ((envval = getenv("OQS_OID_MLKEM1024")))
             oqs_oid_alg_list[48] = envval;
 
-        if ((envval = getenv("OQS_OID_P521_KYBER1024")))
-            oqs_oid_alg_list[50] = envval;
-        if ((envval = getenv("OQS_OID_MLKEM512")))
-            oqs_oid_alg_list[52] = envval;
-
-        if ((envval = getenv("OQS_OID_P256_MLKEM512")))
-            oqs_oid_alg_list[54] = envval;
-        if ((envval = getenv("OQS_OID_X25519_MLKEM512")))
-            oqs_oid_alg_list[56] = envval;
-        if ((envval = getenv("OQS_OID_MLKEM768")))
-            oqs_oid_alg_list[58] = envval;
-
-        if ((envval = getenv("OQS_OID_P384_MLKEM768")))
-            oqs_oid_alg_list[60] = envval;
-        if ((envval = getenv("OQS_OID_X448_MLKEM768")))
-            oqs_oid_alg_list[62] = envval;
-        if ((envval = getenv("OQS_OID_X25519_MLKEM768")))
-            oqs_oid_alg_list[64] = envval;
-        if ((envval = getenv("OQS_OID_P256_MLKEM768")))
-            oqs_oid_alg_list[66] = envval;
-        if ((envval = getenv("OQS_OID_MLKEM1024")))
-            oqs_oid_alg_list[68] = envval;
-
         if ((envval = getenv("OQS_OID_P521_MLKEM1024")))
-            oqs_oid_alg_list[70] = envval;
-        if ((envval = getenv("OQS_OID_P384_MLKEM1024")))
-            oqs_oid_alg_list[72] = envval;
+            oqs_oid_alg_list[50] = envval;
+        if ((envval = getenv("OQS_OID_SECP384R1MLKEM1024")))
+            oqs_oid_alg_list[52] = envval;
         if ((envval = getenv("OQS_OID_BIKEL1")))
-            oqs_oid_alg_list[74] = envval;
+            oqs_oid_alg_list[54] = envval;
 
         if ((envval = getenv("OQS_OID_P256_BIKEL1")))
-            oqs_oid_alg_list[76] = envval;
+            oqs_oid_alg_list[56] = envval;
         if ((envval = getenv("OQS_OID_X25519_BIKEL1")))
-            oqs_oid_alg_list[78] = envval;
+            oqs_oid_alg_list[58] = envval;
         if ((envval = getenv("OQS_OID_BIKEL3")))
-            oqs_oid_alg_list[80] = envval;
+            oqs_oid_alg_list[60] = envval;
 
         if ((envval = getenv("OQS_OID_P384_BIKEL3")))
-            oqs_oid_alg_list[82] = envval;
+            oqs_oid_alg_list[62] = envval;
         if ((envval = getenv("OQS_OID_X448_BIKEL3")))
-            oqs_oid_alg_list[84] = envval;
+            oqs_oid_alg_list[64] = envval;
         if ((envval = getenv("OQS_OID_BIKEL5")))
-            oqs_oid_alg_list[86] = envval;
+            oqs_oid_alg_list[66] = envval;
 
         if ((envval = getenv("OQS_OID_P521_BIKEL5")))
-            oqs_oid_alg_list[88] = envval;
-        if ((envval = getenv("OQS_OID_HQC128")))
-            oqs_oid_alg_list[90] = envval;
+            oqs_oid_alg_list[68] = envval;
 
-        if ((envval = getenv("OQS_OID_P256_HQC128")))
-            oqs_oid_alg_list[92] = envval;
-        if ((envval = getenv("OQS_OID_X25519_HQC128")))
-            oqs_oid_alg_list[94] = envval;
-        if ((envval = getenv("OQS_OID_HQC192")))
-            oqs_oid_alg_list[96] = envval;
-
-        if ((envval = getenv("OQS_OID_P384_HQC192")))
-            oqs_oid_alg_list[98] = envval;
-        if ((envval = getenv("OQS_OID_X448_HQC192")))
-            oqs_oid_alg_list[100] = envval;
-        if ((envval = getenv("OQS_OID_HQC256")))
-            oqs_oid_alg_list[102] = envval;
-
-        if ((envval = getenv("OQS_OID_P521_HQC256")))
-            oqs_oid_alg_list[104] = envval;
-
-#    define OQS_KEMOID_CNT 104 + 2
+#define OQS_KEMOID_CNT 68 + 2
 #else
-#    define OQS_KEMOID_CNT 0
+#define OQS_KEMOID_CNT 0
 #endif /* OQS_KEM_ENCODERS */
-        if ((envval = getenv("OQS_OID_DILITHIUM2")))
-            oqs_oid_alg_list[0 + OQS_KEMOID_CNT] = envval;
-        if ((envval = getenv("OQS_OID_P256_DILITHIUM2")))
-            oqs_oid_alg_list[2 + OQS_KEMOID_CNT] = envval;
-        if ((envval = getenv("OQS_OID_RSA3072_DILITHIUM2")))
-            oqs_oid_alg_list[4 + OQS_KEMOID_CNT] = envval;
-        if ((envval = getenv("OQS_OID_DILITHIUM3")))
-            oqs_oid_alg_list[6 + OQS_KEMOID_CNT] = envval;
-        if ((envval = getenv("OQS_OID_P384_DILITHIUM3")))
-            oqs_oid_alg_list[8 + OQS_KEMOID_CNT] = envval;
-        if ((envval = getenv("OQS_OID_DILITHIUM5")))
-            oqs_oid_alg_list[10 + OQS_KEMOID_CNT] = envval;
-        if ((envval = getenv("OQS_OID_P521_DILITHIUM5")))
-            oqs_oid_alg_list[12 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_MLDSA44")))
-            oqs_oid_alg_list[14 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[0 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P256_MLDSA44")))
-            oqs_oid_alg_list[16 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[2 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_RSA3072_MLDSA44")))
-            oqs_oid_alg_list[18 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[4 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_MLDSA65")))
-            oqs_oid_alg_list[20 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[6 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P384_MLDSA65")))
-            oqs_oid_alg_list[22 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[8 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_MLDSA87")))
-            oqs_oid_alg_list[24 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[10 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P521_MLDSA87")))
-            oqs_oid_alg_list[26 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[12 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_FALCON512")))
-            oqs_oid_alg_list[28 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[14 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P256_FALCON512")))
-            oqs_oid_alg_list[30 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[16 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_RSA3072_FALCON512")))
-            oqs_oid_alg_list[32 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[18 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_FALCONPADDED512")))
-            oqs_oid_alg_list[34 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[20 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P256_FALCONPADDED512")))
-            oqs_oid_alg_list[36 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[22 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_RSA3072_FALCONPADDED512")))
-            oqs_oid_alg_list[38 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[24 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_FALCON1024")))
-            oqs_oid_alg_list[40 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[26 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P521_FALCON1024")))
-            oqs_oid_alg_list[42 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[28 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_FALCONPADDED1024")))
-            oqs_oid_alg_list[44 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[30 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P521_FALCONPADDED1024")))
-            oqs_oid_alg_list[46 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[32 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_SPHINCSSHA2128FSIMPLE")))
-            oqs_oid_alg_list[48 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[34 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P256_SPHINCSSHA2128FSIMPLE")))
-            oqs_oid_alg_list[50 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[36 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_RSA3072_SPHINCSSHA2128FSIMPLE")))
-            oqs_oid_alg_list[52 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[38 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_SPHINCSSHA2128SSIMPLE")))
-            oqs_oid_alg_list[54 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[40 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P256_SPHINCSSHA2128SSIMPLE")))
-            oqs_oid_alg_list[56 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[42 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_RSA3072_SPHINCSSHA2128SSIMPLE")))
-            oqs_oid_alg_list[58 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[44 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_SPHINCSSHA2192FSIMPLE")))
-            oqs_oid_alg_list[60 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[46 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P384_SPHINCSSHA2192FSIMPLE")))
-            oqs_oid_alg_list[62 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[48 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_SPHINCSSHAKE128FSIMPLE")))
-            oqs_oid_alg_list[64 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[50 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_P256_SPHINCSSHAKE128FSIMPLE")))
-            oqs_oid_alg_list[66 + OQS_KEMOID_CNT] = envval;
+            oqs_oid_alg_list[52 + OQS_KEMOID_CNT] = envval;
         if ((envval = getenv("OQS_OID_RSA3072_SPHINCSSHAKE128FSIMPLE")))
+            oqs_oid_alg_list[54 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_MAYO1")))
+            oqs_oid_alg_list[56 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P256_MAYO1")))
+            oqs_oid_alg_list[58 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_MAYO2")))
+            oqs_oid_alg_list[60 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P256_MAYO2")))
+            oqs_oid_alg_list[62 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_MAYO3")))
+            oqs_oid_alg_list[64 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P384_MAYO3")))
+            oqs_oid_alg_list[66 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_MAYO5")))
             oqs_oid_alg_list[68 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P521_MAYO5")))
+            oqs_oid_alg_list[70 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_CROSSRSDP128BALANCED")))
+            oqs_oid_alg_list[72 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_OV_IS_PKC")))
+            oqs_oid_alg_list[74 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P256_OV_IS_PKC")))
+            oqs_oid_alg_list[76 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_OV_IP_PKC")))
+            oqs_oid_alg_list[78 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P256_OV_IP_PKC")))
+            oqs_oid_alg_list[80 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_OV_IS_PKC_SKC")))
+            oqs_oid_alg_list[82 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P256_OV_IS_PKC_SKC")))
+            oqs_oid_alg_list[84 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_OV_IP_PKC_SKC")))
+            oqs_oid_alg_list[86 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P256_OV_IP_PKC_SKC")))
+            oqs_oid_alg_list[88 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_SNOVA2454")))
+            oqs_oid_alg_list[90 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P256_SNOVA2454")))
+            oqs_oid_alg_list[92 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_SNOVA2454ESK")))
+            oqs_oid_alg_list[94 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P256_SNOVA2454ESK")))
+            oqs_oid_alg_list[96 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_SNOVA37172")))
+            oqs_oid_alg_list[98 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P256_SNOVA37172")))
+            oqs_oid_alg_list[100 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_SNOVA2455")))
+            oqs_oid_alg_list[102 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P384_SNOVA2455")))
+            oqs_oid_alg_list[104 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_SNOVA2965")))
+            oqs_oid_alg_list[106 + OQS_KEMOID_CNT] = envval;
+        if ((envval = getenv("OQS_OID_P521_SNOVA2965")))
+            oqs_oid_alg_list[108 + OQS_KEMOID_CNT] = envval;
     } ///// OQS_TEMPLATE_FRAGMENT_OID_PATCHING_END
     return 1;
 }
 
-#ifdef USE_ENCODING_LIB
-const char *oqs_alg_encoding_list[OQS_OID_CNT] = {0};
-
-int oqs_patch_encodings(void)
-{
-    ///// OQS_TEMPLATE_FRAGMENT_ENCODING_PATCHING_START
-    {
-        const char *envval = NULL;
-        if ((envval = getenv("OQS_ENCODING_DILITHIUM2")))
-            oqs_alg_encoding_list[0] = envval;
-        if ((envval = getenv("OQS_ENCODING_DILITHIUM2_ALGNAME")))
-            oqs_alg_encoding_list[1] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_DILITHIUM2")))
-            oqs_alg_encoding_list[2] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_DILITHIUM2_ALGNAME")))
-            oqs_alg_encoding_list[3] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_DILITHIUM2")))
-            oqs_alg_encoding_list[4] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_DILITHIUM2_ALGNAME")))
-            oqs_alg_encoding_list[5] = envval;
-        if ((envval = getenv("OQS_ENCODING_DILITHIUM3")))
-            oqs_alg_encoding_list[6] = envval;
-        if ((envval = getenv("OQS_ENCODING_DILITHIUM3_ALGNAME")))
-            oqs_alg_encoding_list[7] = envval;
-        if ((envval = getenv("OQS_ENCODING_P384_DILITHIUM3")))
-            oqs_alg_encoding_list[8] = envval;
-        if ((envval = getenv("OQS_ENCODING_P384_DILITHIUM3_ALGNAME")))
-            oqs_alg_encoding_list[9] = envval;
-        if ((envval = getenv("OQS_ENCODING_DILITHIUM5")))
-            oqs_alg_encoding_list[10] = envval;
-        if ((envval = getenv("OQS_ENCODING_DILITHIUM5_ALGNAME")))
-            oqs_alg_encoding_list[11] = envval;
-        if ((envval = getenv("OQS_ENCODING_P521_DILITHIUM5")))
-            oqs_alg_encoding_list[12] = envval;
-        if ((envval = getenv("OQS_ENCODING_P521_DILITHIUM5_ALGNAME")))
-            oqs_alg_encoding_list[13] = envval;
-        if ((envval = getenv("OQS_ENCODING_MLDSA44")))
-            oqs_alg_encoding_list[14] = envval;
-        if ((envval = getenv("OQS_ENCODING_MLDSA44_ALGNAME")))
-            oqs_alg_encoding_list[15] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_MLDSA44")))
-            oqs_alg_encoding_list[16] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_MLDSA44_ALGNAME")))
-            oqs_alg_encoding_list[17] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_MLDSA44")))
-            oqs_alg_encoding_list[18] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_MLDSA44_ALGNAME")))
-            oqs_alg_encoding_list[19] = envval;
-        if (getenv("OQS_ENCODING_MLDSA44_PSS2048"))
-            oqs_alg_encoding_list[20] = getenv("OQS_ENCODING_MLDSA44_PSS2048");
-        if (getenv("OQS_ENCODING_MLDSA44_PSS2048_ALGNAME"))
-            oqs_alg_encoding_list[21]
-                = getenv("OQS_ENCODING_MLDSA44_PSS2048_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA44_RSA2048"))
-            oqs_alg_encoding_list[22] = getenv("OQS_ENCODING_MLDSA44_RSA2048");
-        if (getenv("OQS_ENCODING_MLDSA44_RSA2048_ALGNAME"))
-            oqs_alg_encoding_list[23]
-                = getenv("OQS_ENCODING_MLDSA44_RSA2048_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA44_ED25519"))
-            oqs_alg_encoding_list[24] = getenv("OQS_ENCODING_MLDSA44_ED25519");
-        if (getenv("OQS_ENCODING_MLDSA44_ED25519_ALGNAME"))
-            oqs_alg_encoding_list[25]
-                = getenv("OQS_ENCODING_MLDSA44_ED25519_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA44_P256"))
-            oqs_alg_encoding_list[26] = getenv("OQS_ENCODING_MLDSA44_P256");
-        if (getenv("OQS_ENCODING_MLDSA44_P256_ALGNAME"))
-            oqs_alg_encoding_list[27]
-                = getenv("OQS_ENCODING_MLDSA44_P256_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA44_BP256"))
-            oqs_alg_encoding_list[28] = getenv("OQS_ENCODING_MLDSA44_BP256");
-        if (getenv("OQS_ENCODING_MLDSA44_BP256_ALGNAME"))
-            oqs_alg_encoding_list[29]
-                = getenv("OQS_ENCODING_MLDSA44_BP256_ALGNAME");
-        if ((envval = getenv("OQS_ENCODING_MLDSA65")))
-            oqs_alg_encoding_list[30] = envval;
-        if ((envval = getenv("OQS_ENCODING_MLDSA65_ALGNAME")))
-            oqs_alg_encoding_list[31] = envval;
-        if ((envval = getenv("OQS_ENCODING_P384_MLDSA65")))
-            oqs_alg_encoding_list[32] = envval;
-        if ((envval = getenv("OQS_ENCODING_P384_MLDSA65_ALGNAME")))
-            oqs_alg_encoding_list[33] = envval;
-        if (getenv("OQS_ENCODING_MLDSA65_PSS3072"))
-            oqs_alg_encoding_list[34] = getenv("OQS_ENCODING_MLDSA65_PSS3072");
-        if (getenv("OQS_ENCODING_MLDSA65_PSS3072_ALGNAME"))
-            oqs_alg_encoding_list[35]
-                = getenv("OQS_ENCODING_MLDSA65_PSS3072_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA65_RSA3072"))
-            oqs_alg_encoding_list[36] = getenv("OQS_ENCODING_MLDSA65_RSA3072");
-        if (getenv("OQS_ENCODING_MLDSA65_RSA3072_ALGNAME"))
-            oqs_alg_encoding_list[37]
-                = getenv("OQS_ENCODING_MLDSA65_RSA3072_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA65_P256"))
-            oqs_alg_encoding_list[38] = getenv("OQS_ENCODING_MLDSA65_P256");
-        if (getenv("OQS_ENCODING_MLDSA65_P256_ALGNAME"))
-            oqs_alg_encoding_list[39]
-                = getenv("OQS_ENCODING_MLDSA65_P256_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA65_BP256"))
-            oqs_alg_encoding_list[40] = getenv("OQS_ENCODING_MLDSA65_BP256");
-        if (getenv("OQS_ENCODING_MLDSA65_BP256_ALGNAME"))
-            oqs_alg_encoding_list[41]
-                = getenv("OQS_ENCODING_MLDSA65_BP256_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA65_ED25519"))
-            oqs_alg_encoding_list[42] = getenv("OQS_ENCODING_MLDSA65_ED25519");
-        if (getenv("OQS_ENCODING_MLDSA65_ED25519_ALGNAME"))
-            oqs_alg_encoding_list[43]
-                = getenv("OQS_ENCODING_MLDSA65_ED25519_ALGNAME");
-        if ((envval = getenv("OQS_ENCODING_MLDSA87")))
-            oqs_alg_encoding_list[44] = envval;
-        if ((envval = getenv("OQS_ENCODING_MLDSA87_ALGNAME")))
-            oqs_alg_encoding_list[45] = envval;
-        if ((envval = getenv("OQS_ENCODING_P521_MLDSA87")))
-            oqs_alg_encoding_list[46] = envval;
-        if ((envval = getenv("OQS_ENCODING_P521_MLDSA87_ALGNAME")))
-            oqs_alg_encoding_list[47] = envval;
-        if (getenv("OQS_ENCODING_MLDSA87_P384"))
-            oqs_alg_encoding_list[48] = getenv("OQS_ENCODING_MLDSA87_P384");
-        if (getenv("OQS_ENCODING_MLDSA87_P384_ALGNAME"))
-            oqs_alg_encoding_list[49]
-                = getenv("OQS_ENCODING_MLDSA87_P384_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA87_BP384"))
-            oqs_alg_encoding_list[50] = getenv("OQS_ENCODING_MLDSA87_BP384");
-        if (getenv("OQS_ENCODING_MLDSA87_BP384_ALGNAME"))
-            oqs_alg_encoding_list[51]
-                = getenv("OQS_ENCODING_MLDSA87_BP384_ALGNAME");
-        if (getenv("OQS_ENCODING_MLDSA87_ED448"))
-            oqs_alg_encoding_list[52] = getenv("OQS_ENCODING_MLDSA87_ED448");
-        if (getenv("OQS_ENCODING_MLDSA87_ED448_ALGNAME"))
-            oqs_alg_encoding_list[53]
-                = getenv("OQS_ENCODING_MLDSA87_ED448_ALGNAME");
-        if ((envval = getenv("OQS_ENCODING_FALCON512")))
-            oqs_alg_encoding_list[54] = envval;
-        if ((envval = getenv("OQS_ENCODING_FALCON512_ALGNAME")))
-            oqs_alg_encoding_list[55] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_FALCON512")))
-            oqs_alg_encoding_list[56] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_FALCON512_ALGNAME")))
-            oqs_alg_encoding_list[57] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_FALCON512")))
-            oqs_alg_encoding_list[58] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_FALCON512_ALGNAME")))
-            oqs_alg_encoding_list[59] = envval;
-        if ((envval = getenv("OQS_ENCODING_FALCONPADDED512")))
-            oqs_alg_encoding_list[60] = envval;
-        if ((envval = getenv("OQS_ENCODING_FALCONPADDED512_ALGNAME")))
-            oqs_alg_encoding_list[61] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_FALCONPADDED512")))
-            oqs_alg_encoding_list[62] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_FALCONPADDED512_ALGNAME")))
-            oqs_alg_encoding_list[63] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_FALCONPADDED512")))
-            oqs_alg_encoding_list[64] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_FALCONPADDED512_ALGNAME")))
-            oqs_alg_encoding_list[65] = envval;
-        if ((envval = getenv("OQS_ENCODING_FALCON1024")))
-            oqs_alg_encoding_list[66] = envval;
-        if ((envval = getenv("OQS_ENCODING_FALCON1024_ALGNAME")))
-            oqs_alg_encoding_list[67] = envval;
-        if ((envval = getenv("OQS_ENCODING_P521_FALCON1024")))
-            oqs_alg_encoding_list[68] = envval;
-        if ((envval = getenv("OQS_ENCODING_P521_FALCON1024_ALGNAME")))
-            oqs_alg_encoding_list[69] = envval;
-        if ((envval = getenv("OQS_ENCODING_FALCONPADDED1024")))
-            oqs_alg_encoding_list[70] = envval;
-        if ((envval = getenv("OQS_ENCODING_FALCONPADDED1024_ALGNAME")))
-            oqs_alg_encoding_list[71] = envval;
-        if ((envval = getenv("OQS_ENCODING_P521_FALCONPADDED1024")))
-            oqs_alg_encoding_list[72] = envval;
-        if ((envval = getenv("OQS_ENCODING_P521_FALCONPADDED1024_ALGNAME")))
-            oqs_alg_encoding_list[73] = envval;
-        if ((envval = getenv("OQS_ENCODING_SPHINCSSHA2128FSIMPLE")))
-            oqs_alg_encoding_list[74] = envval;
-        if ((envval = getenv("OQS_ENCODING_SPHINCSSHA2128FSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[75] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_SPHINCSSHA2128FSIMPLE")))
-            oqs_alg_encoding_list[76] = envval;
-        if ((envval
-             = getenv("OQS_ENCODING_P256_SPHINCSSHA2128FSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[77] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_SPHINCSSHA2128FSIMPLE")))
-            oqs_alg_encoding_list[78] = envval;
-        if ((envval
-             = getenv("OQS_ENCODING_RSA3072_SPHINCSSHA2128FSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[79] = envval;
-        if ((envval = getenv("OQS_ENCODING_SPHINCSSHA2128SSIMPLE")))
-            oqs_alg_encoding_list[80] = envval;
-        if ((envval = getenv("OQS_ENCODING_SPHINCSSHA2128SSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[81] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_SPHINCSSHA2128SSIMPLE")))
-            oqs_alg_encoding_list[82] = envval;
-        if ((envval
-             = getenv("OQS_ENCODING_P256_SPHINCSSHA2128SSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[83] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_SPHINCSSHA2128SSIMPLE")))
-            oqs_alg_encoding_list[84] = envval;
-        if ((envval
-             = getenv("OQS_ENCODING_RSA3072_SPHINCSSHA2128SSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[85] = envval;
-        if ((envval = getenv("OQS_ENCODING_SPHINCSSHA2192FSIMPLE")))
-            oqs_alg_encoding_list[86] = envval;
-        if ((envval = getenv("OQS_ENCODING_SPHINCSSHA2192FSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[87] = envval;
-        if ((envval = getenv("OQS_ENCODING_P384_SPHINCSSHA2192FSIMPLE")))
-            oqs_alg_encoding_list[88] = envval;
-        if ((envval
-             = getenv("OQS_ENCODING_P384_SPHINCSSHA2192FSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[89] = envval;
-        if ((envval = getenv("OQS_ENCODING_SPHINCSSHAKE128FSIMPLE")))
-            oqs_alg_encoding_list[90] = envval;
-        if ((envval = getenv("OQS_ENCODING_SPHINCSSHAKE128FSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[91] = envval;
-        if ((envval = getenv("OQS_ENCODING_P256_SPHINCSSHAKE128FSIMPLE")))
-            oqs_alg_encoding_list[92] = envval;
-        if ((envval
-             = getenv("OQS_ENCODING_P256_SPHINCSSHAKE128FSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[93] = envval;
-        if ((envval = getenv("OQS_ENCODING_RSA3072_SPHINCSSHAKE128FSIMPLE")))
-            oqs_alg_encoding_list[94] = envval;
-        if ((envval
-             = getenv("OQS_ENCODING_RSA3072_SPHINCSSHAKE128FSIMPLE_ALGNAME")))
-            oqs_alg_encoding_list[95] = envval;
+#define SIGALG(NAMES, SECBITS, FUNC)                                           \
+    {                                                                          \
+        NAMES, "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "",  \
+            FUNC                                                               \
     }
-    ///// OQS_TEMPLATE_FRAGMENT_ENCODING_PATCHING_END
-    return 1;
-}
-#endif
-
-#define SIGALG(NAMES, SECBITS, FUNC)                                          \
-    {                                                                         \
-        NAMES, "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "", \
-            FUNC                                                              \
-    }
-#define KEMBASEALG(NAMES, SECBITS)                                  \
-    {"" #NAMES "",                                                  \
-     "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "", \
+#define KEMBASEALG(NAMES, SECBITS)                                             \
+    {"" #NAMES "",                                                             \
+     "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "",            \
      oqs_generic_kem_functions},
 
-#define KEMHYBALG(NAMES, SECBITS)                                   \
-    {"" #NAMES "",                                                  \
-     "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "", \
+#define KEMHYBALG(NAMES, SECBITS)                                              \
+    {"" #NAMES "",                                                             \
+     "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "",            \
      oqs_hybrid_kem_functions},
 
-#define KEMKMALG(NAMES, SECBITS)                                    \
-    {"" #NAMES "",                                                  \
-     "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "", \
+#define KEMKMALG(NAMES, SECBITS)                                               \
+    {"" #NAMES "",                                                             \
+     "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "",            \
      oqs_##NAMES##_keymgmt_functions},
 
-#define KEMKMHYBALG(NAMES, SECBITS, HYBTYPE)                        \
-    {"" #NAMES "",                                                  \
-     "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "", \
+#define KEMKMHYBALG(NAMES, SECBITS, HYBTYPE)                                   \
+    {"" #NAMES "",                                                             \
+     "provider=oqsprovider,oqsprovider.security_bits=" #SECBITS "",            \
      oqs_##HYBTYPE##_##NAMES##_keymgmt_functions},
 
 /* Functions provided by the core */
@@ -733,53 +486,29 @@ static OSSL_FUNC_core_gettable_params_fn *c_gettable_params = NULL;
 static OSSL_FUNC_core_get_params_fn *c_get_params = NULL;
 
 /* Parameters we provide to the core */
-static const OSSL_PARAM oqsprovider_param_types[]
-    = {OSSL_PARAM_DEFN(OSSL_PROV_PARAM_NAME, OSSL_PARAM_UTF8_PTR, NULL, 0),
-       OSSL_PARAM_DEFN(OSSL_PROV_PARAM_VERSION, OSSL_PARAM_UTF8_PTR, NULL, 0),
-       OSSL_PARAM_DEFN(OSSL_PROV_PARAM_BUILDINFO, OSSL_PARAM_UTF8_PTR, NULL, 0),
-       OSSL_PARAM_DEFN(OSSL_PROV_PARAM_STATUS, OSSL_PARAM_INTEGER, NULL, 0),
-       OSSL_PARAM_END};
+static const OSSL_PARAM oqsprovider_param_types[] = {
+    OSSL_PARAM_DEFN(OSSL_PROV_PARAM_NAME, OSSL_PARAM_UTF8_PTR, NULL, 0),
+    OSSL_PARAM_DEFN(OSSL_PROV_PARAM_VERSION, OSSL_PARAM_UTF8_PTR, NULL, 0),
+    OSSL_PARAM_DEFN(OSSL_PROV_PARAM_BUILDINFO, OSSL_PARAM_UTF8_PTR, NULL, 0),
+    OSSL_PARAM_DEFN(OSSL_PROV_PARAM_STATUS, OSSL_PARAM_INTEGER, NULL, 0),
+    OSSL_PARAM_END};
+
+static OSSL_ALGORITHM *oqsprovider_signatures_rt = NULL;
 
 static const OSSL_ALGORITHM oqsprovider_signatures[] = {
 ///// OQS_TEMPLATE_FRAGMENT_SIG_FUNCTIONS_START
-#ifdef OQS_ENABLE_SIG_dilithium_2
-    SIGALG("dilithium2", 128, oqs_signature_functions),
-    SIGALG("p256_dilithium2", 128, oqs_signature_functions),
-    SIGALG("rsa3072_dilithium2", 128, oqs_signature_functions),
-#endif
-#ifdef OQS_ENABLE_SIG_dilithium_3
-    SIGALG("dilithium3", 192, oqs_signature_functions),
-    SIGALG("p384_dilithium3", 192, oqs_signature_functions),
-#endif
-#ifdef OQS_ENABLE_SIG_dilithium_5
-    SIGALG("dilithium5", 256, oqs_signature_functions),
-    SIGALG("p521_dilithium5", 256, oqs_signature_functions),
-#endif
 #ifdef OQS_ENABLE_SIG_ml_dsa_44
     SIGALG("mldsa44", 128, oqs_signature_functions),
     SIGALG("p256_mldsa44", 128, oqs_signature_functions),
     SIGALG("rsa3072_mldsa44", 128, oqs_signature_functions),
-    SIGALG("mldsa44_pss2048", 112, oqs_signature_functions),
-    SIGALG("mldsa44_rsa2048", 112, oqs_signature_functions),
-    SIGALG("mldsa44_ed25519", 128, oqs_signature_functions),
-    SIGALG("mldsa44_p256", 128, oqs_signature_functions),
-    SIGALG("mldsa44_bp256", 256, oqs_signature_functions),
 #endif
 #ifdef OQS_ENABLE_SIG_ml_dsa_65
     SIGALG("mldsa65", 192, oqs_signature_functions),
     SIGALG("p384_mldsa65", 192, oqs_signature_functions),
-    SIGALG("mldsa65_pss3072", 128, oqs_signature_functions),
-    SIGALG("mldsa65_rsa3072", 128, oqs_signature_functions),
-    SIGALG("mldsa65_p256", 128, oqs_signature_functions),
-    SIGALG("mldsa65_bp256", 256, oqs_signature_functions),
-    SIGALG("mldsa65_ed25519", 128, oqs_signature_functions),
 #endif
 #ifdef OQS_ENABLE_SIG_ml_dsa_87
     SIGALG("mldsa87", 256, oqs_signature_functions),
     SIGALG("p521_mldsa87", 256, oqs_signature_functions),
-    SIGALG("mldsa87_p384", 192, oqs_signature_functions),
-    SIGALG("mldsa87_bp384", 384, oqs_signature_functions),
-    SIGALG("mldsa87_ed448", 192, oqs_signature_functions),
 #endif
 #ifdef OQS_ENABLE_SIG_falcon_512
     SIGALG("falcon512", 128, oqs_signature_functions),
@@ -818,9 +547,65 @@ static const OSSL_ALGORITHM oqsprovider_signatures[] = {
     SIGALG("p256_sphincsshake128fsimple", 128, oqs_signature_functions),
     SIGALG("rsa3072_sphincsshake128fsimple", 128, oqs_signature_functions),
 #endif
+#ifdef OQS_ENABLE_SIG_mayo_1
+    SIGALG("mayo1", 128, oqs_signature_functions),
+    SIGALG("p256_mayo1", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_mayo_2
+    SIGALG("mayo2", 128, oqs_signature_functions),
+    SIGALG("p256_mayo2", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_mayo_3
+    SIGALG("mayo3", 192, oqs_signature_functions),
+    SIGALG("p384_mayo3", 192, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_mayo_5
+    SIGALG("mayo5", 256, oqs_signature_functions),
+    SIGALG("p521_mayo5", 256, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_cross_rsdp_128_balanced
+    SIGALG("CROSSrsdp128balanced", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_uov_ov_Is_pkc
+    SIGALG("OV_Is_pkc", 128, oqs_signature_functions),
+    SIGALG("p256_OV_Is_pkc", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_uov_ov_Ip_pkc
+    SIGALG("OV_Ip_pkc", 128, oqs_signature_functions),
+    SIGALG("p256_OV_Ip_pkc", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_uov_ov_Is_pkc_skc
+    SIGALG("OV_Is_pkc_skc", 128, oqs_signature_functions),
+    SIGALG("p256_OV_Is_pkc_skc", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_uov_ov_Ip_pkc_skc
+    SIGALG("OV_Ip_pkc_skc", 128, oqs_signature_functions),
+    SIGALG("p256_OV_Ip_pkc_skc", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_24_5_4
+    SIGALG("snova2454", 128, oqs_signature_functions),
+    SIGALG("p256_snova2454", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_24_5_4_esk
+    SIGALG("snova2454esk", 128, oqs_signature_functions),
+    SIGALG("p256_snova2454esk", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_37_17_2
+    SIGALG("snova37172", 128, oqs_signature_functions),
+    SIGALG("p256_snova37172", 128, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_24_5_5
+    SIGALG("snova2455", 192, oqs_signature_functions),
+    SIGALG("p384_snova2455", 192, oqs_signature_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_29_6_5
+    SIGALG("snova2965", 256, oqs_signature_functions),
+    SIGALG("p521_snova2965", 256, oqs_signature_functions),
+#endif
     ///// OQS_TEMPLATE_FRAGMENT_SIG_FUNCTIONS_END
     {NULL, NULL, NULL}};
 
+static OSSL_ALGORITHM *oqsprovider_asym_kems_rt = NULL;
 static const OSSL_ALGORITHM oqsprovider_asym_kems[] = {
 ///// OQS_TEMPLATE_FRAGMENT_KEM_FUNCTIONS_START
 // clang-format off
@@ -852,22 +637,6 @@ static const OSSL_ALGORITHM oqsprovider_asym_kems[] = {
     KEMBASEALG(frodo1344shake, 256)
     KEMHYBALG(p521_frodo1344shake, 256)
 #endif
-#ifdef OQS_ENABLE_KEM_kyber_512
-    KEMBASEALG(kyber512, 128)
-    KEMHYBALG(p256_kyber512, 128)
-    KEMHYBALG(x25519_kyber512, 128)
-#endif
-#ifdef OQS_ENABLE_KEM_kyber_768
-    KEMBASEALG(kyber768, 192)
-    KEMHYBALG(p384_kyber768, 192)
-    KEMHYBALG(x448_kyber768, 192)
-    KEMHYBALG(x25519_kyber768, 128)
-    KEMHYBALG(p256_kyber768, 128)
-#endif
-#ifdef OQS_ENABLE_KEM_kyber_1024
-    KEMBASEALG(kyber1024, 256)
-    KEMHYBALG(p521_kyber1024, 256)
-#endif
 #ifdef OQS_ENABLE_KEM_ml_kem_512
     KEMBASEALG(mlkem512, 128)
     KEMHYBALG(p256_mlkem512, 128)
@@ -877,13 +646,13 @@ static const OSSL_ALGORITHM oqsprovider_asym_kems[] = {
     KEMBASEALG(mlkem768, 192)
     KEMHYBALG(p384_mlkem768, 192)
     KEMHYBALG(x448_mlkem768, 192)
-    KEMHYBALG(x25519_mlkem768, 128)
-    KEMHYBALG(p256_mlkem768, 128)
+    KEMHYBALG(X25519MLKEM768, 128)
+    KEMHYBALG(SecP256r1MLKEM768, 128)
 #endif
 #ifdef OQS_ENABLE_KEM_ml_kem_1024
     KEMBASEALG(mlkem1024, 256)
     KEMHYBALG(p521_mlkem1024, 256)
-    KEMHYBALG(p384_mlkem1024, 192)
+    KEMHYBALG(SecP384r1MLKEM1024, 192)
 #endif
 #ifdef OQS_ENABLE_KEM_bike_l1
     KEMBASEALG(bikel1, 128)
@@ -899,67 +668,27 @@ static const OSSL_ALGORITHM oqsprovider_asym_kems[] = {
     KEMBASEALG(bikel5, 256)
     KEMHYBALG(p521_bikel5, 256)
 #endif
-#ifdef OQS_ENABLE_KEM_hqc_128
-    KEMBASEALG(hqc128, 128)
-    KEMHYBALG(p256_hqc128, 128)
-    KEMHYBALG(x25519_hqc128, 128)
-#endif
-#ifdef OQS_ENABLE_KEM_hqc_192
-    KEMBASEALG(hqc192, 192)
-    KEMHYBALG(p384_hqc192, 192)
-    KEMHYBALG(x448_hqc192, 192)
-#endif
-#ifdef OQS_ENABLE_KEM_hqc_256
-    KEMBASEALG(hqc256, 256)
-    KEMHYBALG(p521_hqc256, 256)
-#endif
     // clang-format on
     ///// OQS_TEMPLATE_FRAGMENT_KEM_FUNCTIONS_END
     {NULL, NULL, NULL}};
 
-static const OSSL_ALGORITHM oqsprovider_keymgmt[]
-    = {
+static OSSL_ALGORITHM *oqsprovider_keymgmt_rt = NULL;
+static const OSSL_ALGORITHM oqsprovider_keymgmt[] = {
 ///// OQS_TEMPLATE_FRAGMENT_KEYMGMT_FUNCTIONS_START
 // clang-format off
 
-#ifdef OQS_ENABLE_SIG_dilithium_2
-    SIGALG("dilithium2", 128, oqs_dilithium2_keymgmt_functions),
-    SIGALG("p256_dilithium2", 128, oqs_p256_dilithium2_keymgmt_functions),
-    SIGALG("rsa3072_dilithium2", 128, oqs_rsa3072_dilithium2_keymgmt_functions),
-#endif
-#ifdef OQS_ENABLE_SIG_dilithium_3
-    SIGALG("dilithium3", 192, oqs_dilithium3_keymgmt_functions),
-    SIGALG("p384_dilithium3", 192, oqs_p384_dilithium3_keymgmt_functions),
-#endif
-#ifdef OQS_ENABLE_SIG_dilithium_5
-    SIGALG("dilithium5", 256, oqs_dilithium5_keymgmt_functions),
-    SIGALG("p521_dilithium5", 256, oqs_p521_dilithium5_keymgmt_functions),
-#endif
 #ifdef OQS_ENABLE_SIG_ml_dsa_44
     SIGALG("mldsa44", 128, oqs_mldsa44_keymgmt_functions),
     SIGALG("p256_mldsa44", 128, oqs_p256_mldsa44_keymgmt_functions),
     SIGALG("rsa3072_mldsa44", 128, oqs_rsa3072_mldsa44_keymgmt_functions),
-    SIGALG("mldsa44_pss2048", 112, oqs_mldsa44_pss2048_keymgmt_functions),
-    SIGALG("mldsa44_rsa2048", 112, oqs_mldsa44_rsa2048_keymgmt_functions),
-    SIGALG("mldsa44_ed25519", 128, oqs_mldsa44_ed25519_keymgmt_functions),
-    SIGALG("mldsa44_p256", 128, oqs_mldsa44_p256_keymgmt_functions),
-    SIGALG("mldsa44_bp256", 256, oqs_mldsa44_bp256_keymgmt_functions),
 #endif
 #ifdef OQS_ENABLE_SIG_ml_dsa_65
     SIGALG("mldsa65", 192, oqs_mldsa65_keymgmt_functions),
     SIGALG("p384_mldsa65", 192, oqs_p384_mldsa65_keymgmt_functions),
-    SIGALG("mldsa65_pss3072", 128, oqs_mldsa65_pss3072_keymgmt_functions),
-    SIGALG("mldsa65_rsa3072", 128, oqs_mldsa65_rsa3072_keymgmt_functions),
-    SIGALG("mldsa65_p256", 128, oqs_mldsa65_p256_keymgmt_functions),
-    SIGALG("mldsa65_bp256", 256, oqs_mldsa65_bp256_keymgmt_functions),
-    SIGALG("mldsa65_ed25519", 128, oqs_mldsa65_ed25519_keymgmt_functions),
 #endif
 #ifdef OQS_ENABLE_SIG_ml_dsa_87
     SIGALG("mldsa87", 256, oqs_mldsa87_keymgmt_functions),
     SIGALG("p521_mldsa87", 256, oqs_p521_mldsa87_keymgmt_functions),
-    SIGALG("mldsa87_p384", 192, oqs_mldsa87_p384_keymgmt_functions),
-    SIGALG("mldsa87_bp384", 384, oqs_mldsa87_bp384_keymgmt_functions),
-    SIGALG("mldsa87_ed448", 192, oqs_mldsa87_ed448_keymgmt_functions),
 #endif
 #ifdef OQS_ENABLE_SIG_falcon_512
     SIGALG("falcon512", 128, oqs_falcon512_keymgmt_functions),
@@ -998,6 +727,61 @@ static const OSSL_ALGORITHM oqsprovider_keymgmt[]
     SIGALG("p256_sphincsshake128fsimple", 128, oqs_p256_sphincsshake128fsimple_keymgmt_functions),
     SIGALG("rsa3072_sphincsshake128fsimple", 128, oqs_rsa3072_sphincsshake128fsimple_keymgmt_functions),
 #endif
+#ifdef OQS_ENABLE_SIG_mayo_1
+    SIGALG("mayo1", 128, oqs_mayo1_keymgmt_functions),
+    SIGALG("p256_mayo1", 128, oqs_p256_mayo1_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_mayo_2
+    SIGALG("mayo2", 128, oqs_mayo2_keymgmt_functions),
+    SIGALG("p256_mayo2", 128, oqs_p256_mayo2_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_mayo_3
+    SIGALG("mayo3", 192, oqs_mayo3_keymgmt_functions),
+    SIGALG("p384_mayo3", 192, oqs_p384_mayo3_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_mayo_5
+    SIGALG("mayo5", 256, oqs_mayo5_keymgmt_functions),
+    SIGALG("p521_mayo5", 256, oqs_p521_mayo5_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_cross_rsdp_128_balanced
+    SIGALG("CROSSrsdp128balanced", 128, oqs_CROSSrsdp128balanced_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_uov_ov_Is_pkc
+    SIGALG("OV_Is_pkc", 128, oqs_OV_Is_pkc_keymgmt_functions),
+    SIGALG("p256_OV_Is_pkc", 128, oqs_p256_OV_Is_pkc_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_uov_ov_Ip_pkc
+    SIGALG("OV_Ip_pkc", 128, oqs_OV_Ip_pkc_keymgmt_functions),
+    SIGALG("p256_OV_Ip_pkc", 128, oqs_p256_OV_Ip_pkc_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_uov_ov_Is_pkc_skc
+    SIGALG("OV_Is_pkc_skc", 128, oqs_OV_Is_pkc_skc_keymgmt_functions),
+    SIGALG("p256_OV_Is_pkc_skc", 128, oqs_p256_OV_Is_pkc_skc_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_uov_ov_Ip_pkc_skc
+    SIGALG("OV_Ip_pkc_skc", 128, oqs_OV_Ip_pkc_skc_keymgmt_functions),
+    SIGALG("p256_OV_Ip_pkc_skc", 128, oqs_p256_OV_Ip_pkc_skc_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_24_5_4
+    SIGALG("snova2454", 128, oqs_snova2454_keymgmt_functions),
+    SIGALG("p256_snova2454", 128, oqs_p256_snova2454_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_24_5_4_esk
+    SIGALG("snova2454esk", 128, oqs_snova2454esk_keymgmt_functions),
+    SIGALG("p256_snova2454esk", 128, oqs_p256_snova2454esk_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_37_17_2
+    SIGALG("snova37172", 128, oqs_snova37172_keymgmt_functions),
+    SIGALG("p256_snova37172", 128, oqs_p256_snova37172_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_24_5_5
+    SIGALG("snova2455", 192, oqs_snova2455_keymgmt_functions),
+    SIGALG("p384_snova2455", 192, oqs_p384_snova2455_keymgmt_functions),
+#endif
+#ifdef OQS_ENABLE_SIG_snova_SNOVA_29_6_5
+    SIGALG("snova2965", 256, oqs_snova2965_keymgmt_functions),
+    SIGALG("p521_snova2965", 256, oqs_p521_snova2965_keymgmt_functions),
+#endif
 
 #ifdef OQS_ENABLE_KEM_frodokem_640_aes
     KEMKMALG(frodo640aes, 128)
@@ -1033,25 +817,6 @@ static const OSSL_ALGORITHM oqsprovider_keymgmt[]
 
     KEMKMHYBALG(p521_frodo1344shake, 256, ecp)
 #endif
-#ifdef OQS_ENABLE_KEM_kyber_512
-    KEMKMALG(kyber512, 128)
-
-    KEMKMHYBALG(p256_kyber512, 128, ecp)
-    KEMKMHYBALG(x25519_kyber512, 128, ecx)
-#endif
-#ifdef OQS_ENABLE_KEM_kyber_768
-    KEMKMALG(kyber768, 192)
-
-    KEMKMHYBALG(p384_kyber768, 192, ecp)
-    KEMKMHYBALG(x448_kyber768, 192, ecx)
-    KEMKMHYBALG(x25519_kyber768, 128, ecx)
-    KEMKMHYBALG(p256_kyber768, 128, ecp)
-#endif
-#ifdef OQS_ENABLE_KEM_kyber_1024
-    KEMKMALG(kyber1024, 256)
-
-    KEMKMHYBALG(p521_kyber1024, 256, ecp)
-#endif
 #ifdef OQS_ENABLE_KEM_ml_kem_512
     KEMKMALG(mlkem512, 128)
 
@@ -1063,14 +828,14 @@ static const OSSL_ALGORITHM oqsprovider_keymgmt[]
 
     KEMKMHYBALG(p384_mlkem768, 192, ecp)
     KEMKMHYBALG(x448_mlkem768, 192, ecx)
-    KEMKMHYBALG(x25519_mlkem768, 128, ecx)
-    KEMKMHYBALG(p256_mlkem768, 128, ecp)
+    KEMKMHYBALG(X25519MLKEM768, 128, ecx)
+    KEMKMHYBALG(SecP256r1MLKEM768, 128, ecp)
 #endif
 #ifdef OQS_ENABLE_KEM_ml_kem_1024
     KEMKMALG(mlkem1024, 256)
 
     KEMKMHYBALG(p521_mlkem1024, 256, ecp)
-    KEMKMHYBALG(p384_mlkem1024, 192, ecp)
+    KEMKMHYBALG(SecP384r1MLKEM1024, 192, ecp)
 #endif
 #ifdef OQS_ENABLE_KEM_bike_l1
     KEMKMALG(bikel1, 128)
@@ -1089,27 +854,11 @@ static const OSSL_ALGORITHM oqsprovider_keymgmt[]
 
     KEMKMHYBALG(p521_bikel5, 256, ecp)
 #endif
-#ifdef OQS_ENABLE_KEM_hqc_128
-    KEMKMALG(hqc128, 128)
+    // clang-format on
+    ///// OQS_TEMPLATE_FRAGMENT_KEYMGMT_FUNCTIONS_END
+    {NULL, NULL, NULL}};
 
-    KEMKMHYBALG(p256_hqc128, 128, ecp)
-    KEMKMHYBALG(x25519_hqc128, 128, ecx)
-#endif
-#ifdef OQS_ENABLE_KEM_hqc_192
-    KEMKMALG(hqc192, 192)
-
-    KEMKMHYBALG(p384_hqc192, 192, ecp)
-    KEMKMHYBALG(x448_hqc192, 192, ecx)
-#endif
-#ifdef OQS_ENABLE_KEM_hqc_256
-    KEMKMALG(hqc256, 256)
-
-    KEMKMHYBALG(p521_hqc256, 256, ecp)
-#endif
-        // clang-format on
-        ///// OQS_TEMPLATE_FRAGMENT_KEYMGMT_FUNCTIONS_END
-        {NULL, NULL, NULL}};
-
+static OSSL_ALGORITHM *oqsprovider_encoder_rt = NULL;
 static const OSSL_ALGORITHM oqsprovider_encoder[] = {
 #define ENCODER_PROVIDER "oqsprovider"
 #include "oqsencoders.inc"
@@ -1117,6 +866,7 @@ static const OSSL_ALGORITHM oqsprovider_encoder[] = {
 #undef ENCODER_PROVIDER
 };
 
+static OSSL_ALGORITHM *oqsprovider_decoder_rt = NULL;
 static const OSSL_ALGORITHM oqsprovider_decoder[] = {
 #define DECODER_PROVIDER "oqsprovider"
 #include "oqsdecoders.inc"
@@ -1124,51 +874,23 @@ static const OSSL_ALGORITHM oqsprovider_decoder[] = {
 #undef DECODER_PROVIDER
 };
 
-// get the last number on the composite OID
-int get_composite_idx(int idx)
-{
-    char *s;
-    int i, len, ret = -1, count = 0;
-
-    if (2 * idx > OQS_OID_CNT)
-        return 0;
-    s = (char *)oqs_oid_alg_list[idx * 2];
-    len = strlen(s);
-
-    for (i = 0; i < len; i++) {
-        if (s[i] == '.') {
-            count += 1;
-        }
-        if (count == 8) { // 8 dots in composite OID
-            errno = 0;
-            ret = strtol(s + i + 1, NULL, 10);
-            if (errno == ERANGE)
-                ret = -1;
-            break;
-        }
-    }
-    return ret;
-}
-
-static const OSSL_PARAM *oqsprovider_gettable_params(void *provctx)
-{
+static const OSSL_PARAM *oqsprovider_gettable_params(void *provctx) {
     return oqsprovider_param_types;
 }
 
-#define OQS_PROVIDER_BASE_BUILD_INFO_STR                           \
-    "OQS Provider v." OQS_PROVIDER_VERSION_STR OQS_PROVIDER_COMMIT \
+#define OQS_PROVIDER_BASE_BUILD_INFO_STR                                       \
+    "OQS Provider v." OQS_PROVIDER_VERSION_STR OQS_PROVIDER_COMMIT             \
     " based on liboqs v." OQS_VERSION_TEXT
 
 #ifdef QSC_ENCODING_VERSION_STRING
-#    define OQS_PROVIDER_BUILD_INFO_STR  \
-        OQS_PROVIDER_BASE_BUILD_INFO_STR \
-        " using qsc-key-encoder v." QSC_ENCODING_VERSION_STRING
+#define OQS_PROVIDER_BUILD_INFO_STR                                            \
+    OQS_PROVIDER_BASE_BUILD_INFO_STR                                           \
+    " using qsc-key-encoder v." QSC_ENCODING_VERSION_STRING
 #else
-#    define OQS_PROVIDER_BUILD_INFO_STR OQS_PROVIDER_BASE_BUILD_INFO_STR
+#define OQS_PROVIDER_BUILD_INFO_STR OQS_PROVIDER_BASE_BUILD_INFO_STR
 #endif
 
-static int oqsprovider_get_params(void *provctx, OSSL_PARAM params[])
-{
+static int oqsprovider_get_params(void *provctx, OSSL_PARAM params[]) {
     OSSL_PARAM *p;
 
     p = OSSL_PARAM_locate(params, OSSL_PROV_PARAM_NAME);
@@ -1187,22 +909,48 @@ static int oqsprovider_get_params(void *provctx, OSSL_PARAM params[])
     return 1;
 }
 
+int cnt_rt_disabled(const OSSL_ALGORITHM orig[], int len) {
+    int dcnt = 0;
+
+    for (int i = 0; i < len - 1; i++)
+        if (sk_OPENSSL_STRING_find(rt_disabled_algs,
+                                   (char *)orig[i].algorithm_names) >= 0)
+            dcnt++;
+    return dcnt;
+}
+
+#define FILTERED_ALGS(algs)                                                    \
+    d_algs = cnt_rt_disabled(algs, OSSL_NELEM(algs));                          \
+    if (algs##_rt == NULL) {                                                   \
+        algs##_rt = OPENSSL_malloc(sizeof(OSSL_ALGORITHM) * OSSL_NELEM(algs) - \
+                                   d_algs);                                    \
+        n_cnt = 0;                                                             \
+        for (int i = 0; i < OSSL_NELEM(algs); i++) {                           \
+            if (sk_OPENSSL_STRING_find(rt_disabled_algs,                       \
+                                       (char *)algs[i].algorithm_names) < 0) { \
+                *(algs##_rt + n_cnt) = algs[i];                                \
+                n_cnt++;                                                       \
+            }                                                                  \
+        }                                                                      \
+    }                                                                          \
+    return algs##_rt
+
 static const OSSL_ALGORITHM *oqsprovider_query(void *provctx, int operation_id,
-                                               int *no_cache)
-{
-    *no_cache = 0;
+                                               int *no_cache) {
+    int d_algs, n_cnt;
+    *no_cache = 1;
 
     switch (operation_id) {
     case OSSL_OP_SIGNATURE:
-        return oqsprovider_signatures;
+        FILTERED_ALGS(oqsprovider_signatures);
     case OSSL_OP_KEM:
-        return oqsprovider_asym_kems;
+        FILTERED_ALGS(oqsprovider_asym_kems);
     case OSSL_OP_KEYMGMT:
-        return oqsprovider_keymgmt;
+        FILTERED_ALGS(oqsprovider_keymgmt);
     case OSSL_OP_ENCODER:
-        return oqsprovider_encoder;
+        FILTERED_ALGS(oqsprovider_encoder);
     case OSSL_OP_DECODER:
-        return oqsprovider_decoder;
+        FILTERED_ALGS(oqsprovider_decoder);
     default:
         if (getenv("OQSPROV"))
             printf("Unknown operation %d requested from OQS provider\n",
@@ -1211,33 +959,47 @@ static const OSSL_ALGORITHM *oqsprovider_query(void *provctx, int operation_id,
     return NULL;
 }
 
-static void oqsprovider_teardown(void *provctx)
-{
+static void oqsprovider_teardown(void *provctx) {
     oqsx_freeprovctx((PROV_OQS_CTX *)provctx);
+    OPENSSL_free(oqsprovider_signatures_rt);
+    oqsprovider_signatures_rt = NULL;
+    OPENSSL_free(oqsprovider_asym_kems_rt);
+    oqsprovider_asym_kems_rt = NULL;
+    OPENSSL_free(oqsprovider_keymgmt_rt);
+    oqsprovider_keymgmt_rt = NULL;
+    OPENSSL_free(oqsprovider_encoder_rt);
+    oqsprovider_encoder_rt = NULL;
+    OPENSSL_free(oqsprovider_decoder_rt);
+    oqsprovider_decoder_rt = NULL;
+    sk_OPENSSL_STRING_free(rt_disabled_algs);
+    rt_disabled_algs = NULL;
     OQS_destroy();
 }
 
 /* Functions we provide to the core */
-static const OSSL_DISPATCH oqsprovider_dispatch_table[]
-    = {{OSSL_FUNC_PROVIDER_TEARDOWN, (void (*)(void))oqsprovider_teardown},
-       {OSSL_FUNC_PROVIDER_GETTABLE_PARAMS,
-        (void (*)(void))oqsprovider_gettable_params},
-       {OSSL_FUNC_PROVIDER_GET_PARAMS, (void (*)(void))oqsprovider_get_params},
-       {OSSL_FUNC_PROVIDER_QUERY_OPERATION, (void (*)(void))oqsprovider_query},
-       {OSSL_FUNC_PROVIDER_GET_CAPABILITIES,
-        (void (*)(void))oqs_provider_get_capabilities},
-       {0, NULL}};
+static const OSSL_DISPATCH oqsprovider_dispatch_table[] = {
+    {OSSL_FUNC_PROVIDER_TEARDOWN, (void (*)(void))oqsprovider_teardown},
+    {OSSL_FUNC_PROVIDER_GETTABLE_PARAMS,
+     (void (*)(void))oqsprovider_gettable_params},
+    {OSSL_FUNC_PROVIDER_GET_PARAMS, (void (*)(void))oqsprovider_get_params},
+    {OSSL_FUNC_PROVIDER_QUERY_OPERATION, (void (*)(void))oqsprovider_query},
+    {OSSL_FUNC_PROVIDER_GET_CAPABILITIES,
+     (void (*)(void))oqs_provider_get_capabilities},
+    {0, NULL}};
 
 #ifdef OQS_PROVIDER_STATIC
-#    define OQS_PROVIDER_ENTRYPOINT_NAME oqs_provider_init
+#define OQS_PROVIDER_ENTRYPOINT_NAME oqs_provider_init
 #else
-#    define OQS_PROVIDER_ENTRYPOINT_NAME OSSL_provider_init
+#define OQS_PROVIDER_ENTRYPOINT_NAME OSSL_provider_init
 #endif // ifdef OQS_PROVIDER_STATIC
+
+static int algname_strcmp(const char *const *a, const char *const *b) {
+    return strcmp(*a, *b);
+}
 
 int OQS_PROVIDER_ENTRYPOINT_NAME(const OSSL_CORE_HANDLE *handle,
                                  const OSSL_DISPATCH *in,
-                                 const OSSL_DISPATCH **out, void **provctx)
-{
+                                 const OSSL_DISPATCH **out, void **provctx) {
     const OSSL_DISPATCH *orig_in = in;
     OSSL_FUNC_core_obj_create_fn *c_obj_create = NULL;
 
@@ -1250,6 +1012,8 @@ int OQS_PROVIDER_ENTRYPOINT_NAME(const OSSL_CORE_HANDLE *handle,
     OSSL_PARAM version_request[] = {{"openssl-version", OSSL_PARAM_UTF8_PTR,
                                      &opensslv, sizeof(&opensslv), 0},
                                     {NULL, 0, NULL, 0, 0}};
+    if (!rt_disabled_algs)
+        rt_disabled_algs = sk_OPENSSL_STRING_new(algname_strcmp);
 
     OQS_init();
 
@@ -1261,11 +1025,6 @@ int OQS_PROVIDER_ENTRYPOINT_NAME(const OSSL_CORE_HANDLE *handle,
 
     if (!oqs_patch_oids())
         goto end_init;
-
-#ifdef USE_ENCODING_LIB
-    if (!oqs_patch_encodings())
-        goto end_init;
-#endif
 
     for (; in->function_id != 0; in++) {
         switch (in->function_id) {
@@ -1299,56 +1058,108 @@ int OQS_PROVIDER_ENTRYPOINT_NAME(const OSSL_CORE_HANDLE *handle,
 
     // insert all OIDs to the global objects list
     for (i = 0; i < OQS_OID_CNT; i += 2) {
-        if (!c_obj_create(handle, oqs_oid_alg_list[i], oqs_oid_alg_list[i + 1],
-                          oqs_oid_alg_list[i + 1])) {
-            ERR_raise(ERR_LIB_USER, OQSPROV_R_OBJ_CREATE_ERR);
-            fprintf(stderr, "error registering NID for %s\n",
-                    oqs_oid_alg_list[i + 1]);
-            goto end_init;
-        }
+        int id_ok = 1;
 
-        /* create object (NID) again to avoid setup corner case problems
-         * see https://github.com/openssl/openssl/discussions/21903
-         * Not testing for errors is intentional.
-         * At least one core version hangs up; so don't do this there:
-         */
-        if (strcmp("3.1.0", ossl_versionp)) {
-            OBJ_create(oqs_oid_alg_list[i], oqs_oid_alg_list[i + 1],
-                       oqs_oid_alg_list[i + 1]);
-        }
-
-        if (!oqs_set_nid((char *)oqs_oid_alg_list[i + 1],
-                         OBJ_sn2nid(oqs_oid_alg_list[i + 1]))) {
-            ERR_raise(ERR_LIB_USER, OQSPROV_R_OBJ_CREATE_ERR);
-            goto end_init;
-        }
-
-        if (!c_obj_add_sigid(handle, oqs_oid_alg_list[i + 1], "",
-                             oqs_oid_alg_list[i + 1])) {
-            fprintf(stderr, "error registering %s with no hash\n",
-                    oqs_oid_alg_list[i + 1]);
-            ERR_raise(ERR_LIB_USER, OQSPROV_R_OBJ_CREATE_ERR);
-            goto end_init;
-        }
-
-        if (OBJ_sn2nid(oqs_oid_alg_list[i + 1]) != 0) {
-            OQS_PROV_PRINTF3(
-                "OQS PROV: successfully registered %s with NID %d\n",
-                oqs_oid_alg_list[i + 1], OBJ_sn2nid(oqs_oid_alg_list[i + 1]));
+        if (oqs_oid_alg_list[i] == NULL) {
+            OQS_PROV_PRINTF2("OQS PROV: Warning: No OID registered for %s\n",
+                             oqs_oid_alg_list[i + 1]);
         } else {
-            fprintf(stderr,
-                    "OQS PROV: Impossible error: NID unregistered for %s.\n",
-                    oqs_oid_alg_list[i + 1]);
-            ERR_raise(ERR_LIB_USER, OQSPROV_R_OBJ_CREATE_ERR);
-            goto end_init;
+            if (!c_obj_create(handle, oqs_oid_alg_list[i],
+                              oqs_oid_alg_list[i + 1],
+                              oqs_oid_alg_list[i + 1])) {
+                OQS_PROV_PRINTF2("error registering NID for %s\n",
+                                 oqs_oid_alg_list[i + 1]);
+                id_ok = 0;
+                goto end_for;
+            }
+
+            /* create object (NID) again to avoid setup corner case problems
+             * see https://github.com/openssl/openssl/discussions/21903
+             * Not testing for errors is intentional.
+             * At least one core version hangs up; so don't do this there:
+             */
+            if (strcmp("3.1.0", ossl_versionp)) {
+                ERR_set_mark();
+                OBJ_create(oqs_oid_alg_list[i], oqs_oid_alg_list[i + 1],
+                           oqs_oid_alg_list[i + 1]);
+                ERR_pop_to_mark();
+            }
+
+            if (!oqs_set_nid((char *)oqs_oid_alg_list[i + 1],
+                             OBJ_sn2nid(oqs_oid_alg_list[i + 1]))) {
+                ERR_raise(ERR_LIB_USER, OQSPROV_R_OBJ_CREATE_ERR);
+                goto end_init;
+            }
+
+            if (!c_obj_add_sigid(handle, oqs_oid_alg_list[i + 1], "",
+                                 oqs_oid_alg_list[i + 1])) {
+                OQS_PROV_PRINTF2("error registering %s with no hash\n",
+                                 oqs_oid_alg_list[i + 1]);
+                id_ok = 0;
+                goto end_for;
+            }
+
+            if (OBJ_sn2nid(oqs_oid_alg_list[i + 1]) != 0) {
+                OQS_PROV_PRINTF3(
+                    "OQS PROV: successfully registered %s with NID %d\n",
+                    oqs_oid_alg_list[i + 1],
+                    OBJ_sn2nid(oqs_oid_alg_list[i + 1]));
+            } else {
+                fprintf(stderr,
+                        "OQS PROV: Impossible error: NID unregistered "
+                        "for %s.\n",
+                        oqs_oid_alg_list[i + 1]);
+                ERR_raise(ERR_LIB_USER, OQSPROV_R_OBJ_CREATE_ERR);
+                goto end_init;
+            }
+        end_for:
+            if (!id_ok) {
+                sk_OPENSSL_STRING_push(rt_disabled_algs,
+                                       (char *)(oqs_oid_alg_list[i + 1]));
+            }
         }
     }
 
+    // ML-KEM implementation in OpenSSL 3.5 is _much_ more developed than this
+    // code
+    if (strcmp("3.5.0", ossl_versionp) <= 0) {
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mlkem512");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mlkem768");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "X25519MLKEM768");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "SecP256r1MLKEM768");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "SecP384r1MLKEM1024");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mlkem1024");
+        // need to disable these as per
+        // https://github.com/open-quantum-safe/oqs-provider/discussions/610#discussioncomment-12246359
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa44_pss2048");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa44_rsa2048");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa44_ed25519");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa44_p256");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa44_bp256");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa65_pss3072");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa65_rsa3072");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa65_p256");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa65_bp256");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa65_ed25519");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa87_p384");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa87_bp384");
+        sk_OPENSSL_STRING_push(rt_disabled_algs, "mldsa87_ed448");
+    }
+
+    // output disabled algs:
+    /*
+    printf("disabled algs: %p (cnt: %d)\n", rt_disabled_algs,
+    sk_OPENSSL_STRING_num(rt_disabled_algs));
+    for (int i = 0; i < sk_OPENSSL_STRING_num(rt_disabled_algs); ++i) {
+      printf("Disabled alg #%d: %s in OpenSSL version %s\n", i,
+    sk_OPENSSL_STRING_value(rt_disabled_algs, i), ossl_versionp);
+    }
+    */
+
     // if libctx not yet existing, create a new one
-    if (((corebiometh = oqs_bio_prov_init_bio_method()) == NULL)
-        || ((libctx = OSSL_LIB_CTX_new_child(handle, orig_in)) == NULL)
-        || ((*provctx = oqsx_newprovctx(libctx, handle, corebiometh))
-            == NULL)) {
+    if (((corebiometh = oqs_bio_prov_init_bio_method()) == NULL) ||
+        ((libctx = OSSL_LIB_CTX_new_child(handle, orig_in)) == NULL) ||
+        ((*provctx = oqsx_newprovctx(libctx, handle, corebiometh)) == NULL)) {
         OQS_PROV_PRINTF("OQS PROV: error creating new provider context\n");
         ERR_raise(ERR_LIB_USER, OQSPROV_R_LIB_CREATE_ERR);
         goto end_init;
@@ -1357,10 +1168,11 @@ int OQS_PROVIDER_ENTRYPOINT_NAME(const OSSL_CORE_HANDLE *handle,
     *out = oqsprovider_dispatch_table;
 
     // finally, warn if neither default nor fips provider are present:
-    if (!OSSL_PROVIDER_available(libctx, "default")
-        && !OSSL_PROVIDER_available(libctx, "fips")) {
+    if (!OSSL_PROVIDER_available(libctx, "default") &&
+        !OSSL_PROVIDER_available(libctx, "fips")) {
         OQS_PROV_PRINTF(
-            "OQS PROV: Default and FIPS provider not available. Errors may result.\n");
+            "OQS PROV: Default and FIPS provider not available. Errors "
+            "may result.\n");
     } else {
         OQS_PROV_PRINTF("OQS PROV: Default or FIPS provider available.\n");
     }
@@ -1368,11 +1180,11 @@ int OQS_PROVIDER_ENTRYPOINT_NAME(const OSSL_CORE_HANDLE *handle,
 
 end_init:
     if (!rc) {
-        if (ossl_versionp)
+        if (ossl_versionp) {
             OQS_PROV_PRINTF2(
                 "oqsprovider init failed for OpenSSL core version %s\n",
                 ossl_versionp);
-        else
+        } else
             OQS_PROV_PRINTF("oqsprovider init failed for OpenSSL\n");
         if (libctx)
             OSSL_LIB_CTX_free(libctx);

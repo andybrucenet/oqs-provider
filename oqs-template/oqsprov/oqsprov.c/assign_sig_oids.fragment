@@ -13,9 +13,6 @@
         {%- for classical_alg in variant['mix_with'] %}
 {%- set count.val = count.val + 1 -%}
         {%- endfor %}
-        {%- for composite_alg in variant['composite'] %}
-{%- set count.val = count.val + 1 -%}
-        {%- endfor %}
     {%- endfor %}
 {%- endfor %}
 
@@ -29,9 +26,17 @@ const char* oqs_oid_alg_list[OQS_OID_CNT] =
 
 #ifdef OQS_KEM_ENCODERS
 {% for kem in config['kems'] %}
+{%- if kem['oid'] == "NULL" -%}
+NULL, "{{ kem['name_group'] }}",
+{%- else -%}
 "{{ kem['oid'] }}", "{{ kem['name_group'] }}",
+{%- endif -%}
 {%- for hybrid in kem['hybrids'] %}
-"{{hybrid['hybrid_oid']}}", "{{hybrid['hybrid_group']}}_{{ kem['name_group'] }}",
+{%- if hybrid['hybrid_oid'] == "NULL" -%}
+NULL, "{% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}",
+{%- else -%}
+"{{hybrid['hybrid_oid']}}", "{% if 'standard_name' in hybrid %}{{hybrid['standard_name']}}{% else %}{{ hybrid['hybrid_group'] }}_{{ kem['name_group'] }}{% endif %}",
+{%- endif -%}
 {%- endfor -%}
 {%- endfor %}
 
@@ -42,9 +47,6 @@ const char* oqs_oid_alg_list[OQS_OID_CNT] =
 "{{ variant['oid'] }}", "{{ variant['name'] }}",
         {%- for classical_alg in variant['mix_with'] %}
 "{{ classical_alg['oid'] }}" , "{{ classical_alg['name'] }}_{{ variant['name'] }}",
-        {%- endfor %}
-        {%- for composite_alg in variant['composite'] %}
-"{{ composite_alg['oid'] }}" , "{{ variant['name'] }}_{{ composite_alg['name'] }}",
         {%- endfor %}
     {%- endfor %}
 {%- endfor %}
