@@ -175,7 +175,7 @@ function build_apple_fatlib {
 
   # build args and execute
   for i_arch in `echo "$i_archs"` ; do
-    l_args="${l_args}./$i_arch/lib/$i_lib_name "
+    l_args="${l_args}./$i_arch/lib/lib$i_lib_name "
   done
   eval xcrun lipo ${l_args}-create -output ./lib/$i_lib_name || return $?
   lipo -info ./lib/$i_lib_name
