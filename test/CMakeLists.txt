@@ -31,8 +31,15 @@ set(REQ_LIBS_T, "")
 if (OQS_PROVIDER_BUILD_STATIC)
   get_filename_component(OPENSSL_LIB_TYPE ${OPENSSL_CRYPTO_LIBRARY} LAST_EXT)
   if(OPENSSL_LIB_TYPE STREQUAL ".a")
+    # ABr: originally just the following
     #set(REQ_LIBS_T "dl" "pthread")
-    set(REQ_LIBS_T "dl")
+    # ABr: But suppress for Android
+    if (ANDROID)
+      # ABr: this seems to work for Android
+      set(REQ_LIBS_T "dl")
+    else()
+      set(REQ_LIBS_T "dl" "pthread")
+    endif()
   endif()
 endif()
 
