@@ -93,9 +93,11 @@ def nist_to_bits(nistlevel):
       return None
 
 def get_tmp_kem_oid():
-   global kemoidcnt
-   kemoidcnt = kemoidcnt+1
-   return "1.3.9999.99."+str(kemoidcnt)
+   # doesn't work for runs on different files:
+   # global kemoidcnt
+   # kemoidcnt = kemoidcnt+1
+   # return "1.3.9999.99."+str(kemoidcnt)
+   return "NULL"
 
 def complete_config(config):
    for kem in config['kems']:
@@ -208,11 +210,11 @@ def load_config(include_disabled_sigs=False):
             continue
         hybrid_nids = set()
         for extra_hybrid in kem['extra_nids']['current']:
-            if extra_hybrid['hybrid_group'] == "x25519" or extra_hybrid['hybrid_group'] == "p256":
+            if extra_hybrid['hybrid_group'] == "x25519" or extra_hybrid['hybrid_group'] == "p256"  or extra_hybrid['hybrid_group'] == "secp256_r1":
                extra_hybrid['bit_security'] = 128
-            if extra_hybrid['hybrid_group'] == "x448" or extra_hybrid['hybrid_group'] == "p384":
+            if extra_hybrid['hybrid_group'] == "x448" or extra_hybrid['hybrid_group'] == "p384" or extra_hybrid['hybrid_group'] == "secp384_r1":
                extra_hybrid['bit_security'] = 192
-            if extra_hybrid['hybrid_group'] == "p521":
+            if extra_hybrid['hybrid_group'] == "p521" or extra_hybrid['hybrid_group'] == "secp521_r1":
                extra_hybrid['bit_security'] = 256
             if not 'hybrid_oid' in extra_hybrid:
                 extra_hybrid['hybrid_oid'] = get_tmp_kem_oid()
@@ -245,7 +247,7 @@ populate('oqsprov/oqs_encode_key2any.c', config, '/////')
 populate('oqsprov/oqs_decode_der2key.c', config, '/////')
 populate('oqsprov/oqsprov_keys.c', config, '/////')
 populate('scripts/common.py', config, '#####')
-populate('test/oqs_test_evp_pkey_params.c', config, '/////')
+populate('test/test_common.c', config, '/////')
 
 config2 = load_config(include_disabled_sigs=True)
 config2 = complete_config(config2)

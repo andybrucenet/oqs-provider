@@ -6,6 +6,8 @@ permissions:
   contents: read
 
 jobs:
+  coding_style_tests:
+    uses: ./.github/workflows/coding_style.yml
   cygwin:
 # Run a job for each of the specified target architectures:
     strategy:
@@ -16,9 +18,12 @@ jobs:
         platform:
           - arch: win64
             oqsconfig: -DOQS_ALGS_ENABLED=STD
+            # empty `config` property here to prevent actionlint error (property "config" is not defined in object type) on line 62 below
+            config:
 #          - arch: win32
 #            config: --strict-warnings no-fips enable-quic
     runs-on: ${{matrix.os}}
+    needs: [coding_style_tests]
     env:
       CYGWIN_NOWINPATH: 1
       SHELLOPTS: igncr
@@ -26,15 +31,16 @@ jobs:
       MAKE_PARAMS: -j 4
     steps:
       - name: Checkout provider
-        uses: actions/checkout@v3
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
       - name: Checkout openssl
-        uses: actions/checkout@v3
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
         with:
           set-safe-directory: true
           repository: openssl/openssl
           path: openssl
+          ref: master
       - name: checkout liboqs
-        uses: actions/checkout@v3
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
         with:
           set-safe-directory: true
           repository: open-quantum-safe/liboqs
@@ -43,27 +49,13 @@ jobs:
       - name: Install cygwin
         uses: cygwin/cygwin-install-action@master
         with:
-          packages: perl git ninja gcc-core cmake make
+          packages: perl git ninja gcc-core cmake make python3 python3-devel python3-setuptools python3-exceptiongroup
       - name: Retrieve OpenSSL32 from cache
         id: cache-openssl32
         uses: actions/cache@v3
         with:
           path: c:\cygwin\opt\openssl32
           key: ${{ runner.os }}-cygwinopenssl32
-      - name: Set installpath
-        run: |
-           echo "IP=$(cygpath -u $PWD)/.local" >> "$env:GITHUB_ENV"
-      - name: build liboqs
-        run: |
-           which cmake
-           cmake --version
-           gcc --version
-           mkdir _build
-           cd _build
-           cmake -GNinja -DOPENSSL_ROOT_DIR=/opt/openssl32 -DCMAKE_INSTALL_PREFIX="${{ env.IP }}" ${{ matrix.platform.oqsconfig }} -DCMAKE_C_COMPILER=gcc ..
-           ninja
-           ninja install
-        working-directory: liboqs
       - name: Build openssl3 if not cached
         if: steps.cache-openssl32.outputs.cache-hit != 'true'
         run: bash -c "./config --prefix=/opt/openssl32 ${{ matrix.platform.config }} && perl configdata.pm --dump && make $MAKE_PARAMS && make install_sw"
@@ -78,10 +70,30 @@ jobs:
           path: |
             c:\cygwin\opt\openssl32
           key: ${{ runner.os }}-cygwinopenssl32
+      - name: Set installpath
+        run: |
+           echo "IP=$(cygpath -u $PWD)/.local" >> "$env:GITHUB_ENV"
+      - name: build liboqs
+        run: |
+           which cmake
+           cmake --version
+           gcc --version
+           mkdir _build
+           cd _build
+           cmake -GNinja -DOPENSSL_ROOT_DIR=/opt/openssl32 -DCMAKE_INSTALL_PREFIX="${{ env.IP }}" ${{ matrix.platform.oqsconfig }} -DCMAKE_C_COMPILER=gcc ..
+           ninja
+           ninja install
+           pip install pytest psutil pytest-xdist pyyaml
+           # TODO: as "autoprocesses" not recognized, don't run ninja run_tests
+        working-directory: liboqs
       - name: build oqs-provider
         run: bash -c "git config --global --add safe.directory $(cygpath -u $PWD) && liboqs_DIR='${{ env.IP }}' cmake -GNinja -DCMAKE_C_COMPILER=gcc -DOPENSSL_ROOT_DIR=/opt/openssl32 -S . -B _build && cd _build && ninja && cd .."
       - name: Check Openssl providers
         run: bash -c "OPENSSL_MODULES=_build/lib /opt/openssl32/bin/openssl list -providers -provider oqsprovider -provider default"
+      - name: Check Openssl provider signature algorithms
+        run: bash -c "OPENSSL_MODULES=_build/lib /opt/openssl32/bin/openssl list -signature-algorithms -provider oqsprovider -provider default"
+      - name: Check Openssl provider KEM algorithms
+        run: bash -c "OPENSSL_MODULES=_build/lib /opt/openssl32/bin/openssl list -kem-algorithms -provider oqsprovider -provider default"
       - name: Run tests
         run: bash -c "echo $PATH && PATH=/opt/openssl32/bin:/usr/bin ctest -V"
         working-directory: _build
@@ -107,6 +119,7 @@ jobs:
 #            oqsconfig: -DOQS_ALGS_ENABLED=STD
 #            osslconfig: --strict-warnings no-fips enable-quic
     runs-on: ${{matrix.os}}
+    needs: [coding_style_tests]
     steps:
       - name: Restore OpenSSL32 cache
         id: cache-openssl32
@@ -114,15 +127,15 @@ jobs:
         with:
           path: c:\openssl32
           key: ${{ runner.os }}-msvcopenssl32
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
       - name: Checkout OpenSSL master
         if: steps.cache-openssl32.outputs.cache-hit != 'true'
-        uses: actions/checkout@v3
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
         with:
           set-safe-directory: true
           repository: openssl/openssl
           path: openssl
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
         with:
           set-safe-directory: true
           repository: open-quantum-safe/liboqs
@@ -212,7 +225,7 @@ jobs:
           - arch: win64
             oqsconfig: -DOQS_ALGS_ENABLED=STD
             osslconfig: no-shared no-fips VC-WIN64A
-        toolchain: 
+        toolchain:
         - .CMake/toolchain_windows_amd64.cmake
         msarch:
           - x64
@@ -220,6 +233,7 @@ jobs:
           - Debug
           - Release
     runs-on: ${{matrix.os}}
+    needs: [coding_style_tests]
     steps:
         - name: Restore native OpenSSL32 cache
           id: cache-openssl32n
@@ -227,15 +241,15 @@ jobs:
           with:
             path: c:\openssl32n
             key: ${{ runner.os }}-msvcopenssl32n
-        - uses: actions/checkout@v3
+        - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
         - name: Checkout OpenSSL master
           if: steps.cache-openssl32n.outputs.cache-hit != 'true'
-          uses: actions/checkout@v3
+          uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
           with:
             set-safe-directory: true
             repository: openssl/openssl
             path: openssl
-        - uses: actions/checkout@v3
+        - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # pin@v4
           with:
             set-safe-directory: true
             repository: open-quantum-safe/liboqs
@@ -261,7 +275,7 @@ jobs:
           run: |
             cmake --version
             cmake -B build --toolchain ${{ matrix.toolchain }} .
-            cmake --build build 
+            cmake --build build
             cmake --build build --target INSTALL
           working-directory: liboqs
         - name: prepare the OpenSSL build directory
@@ -305,4 +319,4 @@ jobs:
           with:
             name: oqs-provider-msvc
             path: D:/a/oqs-provider/oqs-provider/_build/lib/oqsprovider.dll
-          
+
