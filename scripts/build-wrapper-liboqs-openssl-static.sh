@@ -51,7 +51,6 @@ set +x
 
 # handle find command (breaks on windows if cygwin not in path)
 [ -x /bin/find ] && the_find_cmd='/bin/find' || the_find_cmd='find'
-echo "the_find_cmd=$the_find_cmd"
 
 # enable debug to get explicit compiler command lines
 the_cmake_build_verbose_flag="${the_cmake_build_verbose_flag:-0}"
