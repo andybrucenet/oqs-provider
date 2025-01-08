@@ -50,7 +50,8 @@ export the_openssl_ver the_libs_dir the_ios_target the_macos_target the_android_
 set +x
 
 # handle find command (breaks on windows if cygwin not in path)
-the_find_cmd="`which find | head -n 1 | xargs`"
+[ -x /bin/find ] && the_find_cmd='/bin/find' || the_find_cmd='find'
+echo "the_find_cmd=$the_find_cmd"
 
 # enable debug to get explicit compiler command lines
 the_cmake_build_verbose_flag="${the_cmake_build_verbose_flag:-0}"
