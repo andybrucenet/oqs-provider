@@ -321,10 +321,12 @@ function build_linux_variant {
   cd "$l_build_dir_path" || return $?
   rm -fR ./*
 
+  # see https://askubuntu.com/a/1259084; we must manually include ZLIB
   set -x
   liboqs_DIR="$the_liboqs_dir/build/$l_type/$i_arch/src" \
   cmake \
     $the_cmake_build_trace_option \
+    -DZLIB_LIBRARY=/usr/lib64/libz.so \
     -DOQS_PROVIDER_BUILD_STATIC=ON \
     -DOQS_KEM_ENCODERS=ON \
     -DOPENSSL_USE_STATIC_LIBS=ON \
