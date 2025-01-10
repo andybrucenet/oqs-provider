@@ -405,13 +405,15 @@ function build_windows_variant {
   local l_liboqs_DIR_windows="`cygpath -am "$l_liboqs_DIR" | xargs`"
   local l_zlib_DIR="`realpath "$the_liboqs_dir/../zlib-win-build/build-VS2022-MT/x64"`"
   local l_zlib_DIR_windows="`cygpath -am "$l_zlib_DIR" | xargs`"
+  local l_zlib_PATH="$l_zlib_DIR/Debug/libz-static.lib"
+  local l_zlib_PATH_windows="`cygpath -am "$l_zlib_PATH" | xargs`"
 
   echo 'CONFIGURE...'
   set -x
   liboqs_DIR="$l_liboqs_DIR_windows" \
   cmake \
     $the_cmake_build_trace_option \
-    -DZLIB_LIBRARY="$l_zlib_DIR_windows/libz-static.lib" \
+    -DZLIB_LIBRARY="$l_zlib_PATH_windows" \
     -DOQS_PROVIDER_BUILD_STATIC=ON \
     -DOQS_KEM_ENCODERS=ON \
     -DOPENSSL_USE_STATIC_LIBS=ON \
