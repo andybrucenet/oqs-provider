@@ -46,7 +46,7 @@ the_ios_target="${the_ios_target}"
 the_macos_target="${the_macos_target}"
 the_android_api_level="${the_android_api_level}"
 the_oqs_algs_enabled="${the_oqs_algs_enabled}"
-the_oqs_asan_enabled="${the_oqs_asan_enabled:-1}"
+the_oqs_asan_enabled="${the_oqs_asan_enabled:-0}"
 export the_openssl_ver the_libs_dir the_ios_target the_macos_target the_android_api_level the_oqs_algs_enabled the_oqs_asan_enabled
 set +x
 
