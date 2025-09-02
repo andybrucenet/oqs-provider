@@ -343,8 +343,6 @@ function build_linux_variant {
       -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
       -DOQS_KEM_ENCODERS=ON \
       -DOQS_PROVIDER_BUILD_STATIC=ON \
-      -DOQS_PROVIDER_BUILD_SHARED=OFF \
-      -DOQS_PROVIDER_BUILD_TESTS=OFF \
       -DZLIB_LIBRARY=/usr/lib64/libz.so \
       -DZLIB_INCLUDE_DIR=/usr/include \
       -DOPENSSL_USE_STATIC_LIBS=ON \
@@ -371,8 +369,6 @@ function build_linux_variant {
       -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
       -DOQS_KEM_ENCODERS=ON \
       -DOQS_PROVIDER_BUILD_STATIC=ON \
-      -DOQS_PROVIDER_BUILD_SHARED=OFF \
-      -DOQS_PROVIDER_BUILD_TESTS=OFF \
       -DZLIB_LIBRARY=/usr/lib64/libz.so \
       -DZLIB_INCLUDE_DIR=/usr/include \
       -DOPENSSL_USE_STATIC_LIBS=ON \
@@ -414,7 +410,7 @@ function build_linux_variant {
 
   # note: we cannot test oqs-provider without oqs-provider as a shared object.
   # and we do *not* generate shared objects.
-  cmake --build . $the_cmake_build_verbose_option || return $?
+  cmake --build . --parallel "$(nproc)" $the_cmake_build_verbose_option || return $?
   echo ''
   return 0
 }
