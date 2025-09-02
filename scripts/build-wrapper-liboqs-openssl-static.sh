@@ -148,14 +148,17 @@ function build_apple_variant {
     -DCMAKE_TOOLCHAIN_FILE="$the_cmake_dir_path"/apple.cmake  \
     -DPLATFORM=$i_platform \
     -DDEPLOYMENT_TARGET=$l_deployment_target \
-    -DOQS_PROVIDER_BUILD_STATIC=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DOQS_KEM_ENCODERS=ON \
+    -DOQS_PROVIDER_BUILD_STATIC=ON \
     -DOPENSSL_USE_STATIC_LIBS=ON \
     -DOPENSSL_ROOT_DIR="$l_openssl_plat_dir" \
     -DLIBOQS_INCLUDE_DIR="$l_liboqs_plat_dir/include" \
     -B . -S "$the_top_dir"
   l_rc=$? ; set +x ; [ $l_rc -ne 0 ] && return $l_rc
-  cmake --build . $the_cmake_build_verbose_option || return $?
+  cmake --build . --parallel "$(nproc)" $the_cmake_build_verbose_option || return $?
   echo ''
   return 0
 }
@@ -277,8 +280,11 @@ function build_android_variant {
     -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME"/build/cmake/android.toolchain.cmake \
     -DANDROID_ABI=$i_arch \
     -DANDROID_PLATFORM=android-$the_android_api_level \
-    -DOQS_PROVIDER_BUILD_STATIC=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DOQS_KEM_ENCODERS=ON \
+    -DOQS_PROVIDER_BUILD_STATIC=ON \
     -DOPENSSL_USE_STATIC_LIBS=ON \
     -DOPENSSL_ROOT_DIR="$l_openssl_plat_dir" \
     -DOPENSSL_INCLUDE_DIR="$l_openssl_plat_dir/include" \
@@ -287,7 +293,7 @@ function build_android_variant {
     -DLIBOQS_INCLUDE_DIR="$l_liboqs_plat_dir/include" \
     "$the_top_dir"
   l_rc=$? ; set +x ; [ $l_rc -ne 0 ] && return $l_rc
-  cmake --build . $the_cmake_build_verbose_option || return $?
+  cmake --build . --parallel "$(nproc)" $the_cmake_build_verbose_option || return $?
   echo ''
   return 0
 }
@@ -475,9 +481,12 @@ function build_windows_variant {
   liboqs_DIR="$l_liboqs_DIR_windows" \
   cmake \
     $the_cmake_build_trace_option \
-    -DZLIB_LIBRARY="$l_zlib_PATH_windows" \
-    -DOQS_PROVIDER_BUILD_STATIC=ON \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DOQS_KEM_ENCODERS=ON \
+    -DOQS_PROVIDER_BUILD_STATIC=ON \
+    -DZLIB_LIBRARY="$l_zlib_PATH_windows" \
     -DOPENSSL_USE_STATIC_LIBS=ON \
     -DOPENSSL_ROOT_DIR="$l_openssl_root_dir_windows" \
     -DOPENSSL_INCLUDE_DIR="$l_openssl_include_dir_windows" \
@@ -490,7 +499,7 @@ function build_windows_variant {
 
   echo 'BUILD...'
   set -x
-  $l_msbuild_name ALL_BUILD.vcxproj /property:Configuration=Release
+  $l_msbuild_name /m ALL_BUILD.vcxproj /property:Configuration=Release
   l_rc=$? ; set +x ; [ $l_rc -ne 0 ] && return $l_rc
   echo ''
 
